@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from napari.layers import Image
-from napari.layers.utils.stack_utils import (
+from napari.utils.stack_utils import (
     images_to_stack,
     split_channels,
     stack_to_images,

@@ -23,7 +23,6 @@ from ..utils._injection import inject_napari_dependencies
 from ..utils.context._layerlist_context import LayerListContextKeys as LLCK
 from ..utils.translations import trans
 from .base.base import Layer
-from .utils import stack_utils
 from .utils._link_layers import get_linked_layers
 
 if TYPE_CHECKING:
@@ -44,6 +43,8 @@ def _duplicate_layer(ll: LayerList):
 
 @inject_napari_dependencies
 def _split_stack(ll: LayerList, axis: int = 0):
+    from ..utils import stack_utils
+
     layer = ll.selection.active
     if not layer:
         return
@@ -148,6 +149,8 @@ def _convert_to_image(ll: LayerList):
 
 @inject_napari_dependencies
 def _merge_stack(ll: LayerList, rgb=False):
+    from ..utils import stack_utils
+
     # force selection to follow LayerList ordering
     selection = [layer for layer in ll if layer in ll.selection]
     for layer in selection:

@@ -34,7 +34,6 @@ from ..layers.image._image_utils import guess_labels
 from ..layers.labels._labels_key_bindings import labels_fun_to_mode
 from ..layers.points._points_key_bindings import points_fun_to_mode
 from ..layers.shapes._shapes_key_bindings import shapes_fun_to_mode
-from ..layers.utils.stack_utils import split_channels
 from ..plugins.utils import get_potential_readers, get_preferred_reader
 from ..settings import get_settings
 from ..utils._register import create_func as create_add_method
@@ -810,6 +809,16 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
 
             return layer
         else:
+            from ..utils.stack_utils import split_channels
+
+            warnings.warn(
+                trans._(
+                    "\nThe 'channel_axis' argument is deprecated and will be removed in v0.5.1.\nTo achieve the same behavior, you may use 'napari.utils.split_channels':\n\n```\nfrom napari.utils import split_channels\n\nfor (ch, kw, _) in split_channels(data, channel_axis, **kwargs):\n    viewer.add_image(ch, **kw)\n```\n",
+                    deferred=True,
+                ),
+                category=DeprecationWarning,
+                stacklevel=3,
+            )
             layerdata_list = split_channels(data, channel_axis, **kwargs)
 
             layer_list = list()

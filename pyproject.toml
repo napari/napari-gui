@@ -102,6 +102,8 @@ filterwarnings = [
   "ignore:.*Themes were changed to use evented model",  # specifying the full is not working here so glob pattern is used instead
   "ignore:distutils Version classes are deprecated::",
   "ignore:There is no current event loop:DeprecationWarning:",
+  # REMOVE me once we drop channel_axis.  Much easier to put here than to decorate every test.
+  "ignore:\\nThe 'channel_axis' argument is deprecated:DeprecationWarning",
 ]
 markers = [
     "sync_only: Test should only be run synchronously",

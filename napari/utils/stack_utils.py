@@ -5,14 +5,13 @@ from typing import TYPE_CHECKING, List
 
 import numpy as np
 
-from ...layers import Image
-from ...layers.image._image_utils import guess_multiscale
-from ...utils.colormaps import CYMRGB, MAGENTA_GREEN, Colormap
-from ...utils.misc import ensure_iterable, ensure_sequence_of_iterables
-from ...utils.translations import trans
+from .colormaps import CYMRGB, MAGENTA_GREEN, Colormap
+from .misc import ensure_iterable, ensure_sequence_of_iterables
+from .translations import trans
 
 if TYPE_CHECKING:
-    from ...types import FullLayerData
+    from ..layers import Image
+    from ..types import FullLayerData
 
 
 def slice_from_axis(array, *, axis, element):
@@ -72,6 +71,7 @@ def split_channels(
     -------
     List of LayerData tuples: [(data: array, meta: Dict, type: str )]
     """
+    from ..layers.image._image_utils import guess_multiscale
 
     # Determine if data is a multiscale
     multiscale = kwargs.get('multiscale')
@@ -181,6 +181,7 @@ def stack_to_images(stack: Image, axis: int, **kwargs) -> List[Image]:
     imagelist: list
         List of Image objects
     """
+    from ..layers import Image
 
     data, meta, _ = stack.as_layer_data_tuple()
 
@@ -272,6 +273,7 @@ def images_to_stack(images: List[Image], axis: int = 0, **kwargs) -> Image:
     stack : napari.layers.Image
         Combined image stack
     """
+    from ..layers import Image
 
     if not images:
         raise IndexError(trans._("images list is empty", deferred=True))
