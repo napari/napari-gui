@@ -1,6 +1,7 @@
 from functools import lru_cache
 
 import numpy as np
+from scipy.ndimage import binary_fill_holes
 
 
 def interpolate_coordinates(old_coord, new_coord, brush_size):
@@ -201,3 +202,44 @@ def mouse_event_to_labels_coordinate(layer, event):
             return None
         coordinates = first_nonzero_coordinate(layer.data, start, end)
     return coordinates
+
+
+def measure_coord_distance(refcoord, coord):
+    a = np.array(refcoord)
+    b = np.array(coord)
+    return np.linalg.norm(a - b)
+
+
+def get_valid_indices(layer, label):
+    # get current view of layer data
+    curslice_index = layer._slice_indices
+    curdata = layer.data[curslice_index].copy()
+    # fill holes for current slice
+    curlabel = binary_fill_holes(curdata == label)
+    prevlabel = layer._previous_data[curslice_index].copy()
+    occupied_region = prevlabel > 0
+    valid_region = (curlabel) ^ (curlabel & occupied_region)
+    # to get correct indexing, use a blank array with the label shape
+    blankdata = np.zeros(layer.data.shape, dtype=bool)
+    # then fill in the current viewed slice with valid region
+    blankdata[curslice_index] = valid_region
+    return np.where(blankdata)
+
+
+def count_unique_coordinates(coords):
+    coordsarr = np.round(np.array(coords)).astype(int)
+    uniquecoords = np.unique(coordsarr, axis=0)
+    return len(uniquecoords)
+
+
+def find_next_label(layer):
+    uniquelabels = np.delete(np.unique(layer.data), 0)
+    sequentialset = np.arange(1, uniquelabels.max() + 1)
+    # find next sequence
+    missing_sequence = np.setdiff1d(sequentialset, uniquelabels)
+    # if there are not missing sequence
+    if len(missing_sequence) > 0:
+        return missing_sequence.min()
+    else:
+        # otherwise, increment label by 1
+        return uniquelabels.max() + 1

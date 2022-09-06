@@ -6,6 +6,7 @@ from ...layers.utils.layer_utils import (
 )
 from ...utils.translations import trans
 from ._labels_constants import Mode
+from ._labels_utils import find_next_label
 from .labels import Labels
 
 
@@ -57,12 +58,19 @@ def activate_label_erase_mode(layer: Labels):
     layer.mode = Mode.ERASE
 
 
+@register_label_mode_action(trans._("Activate fill contour mode"))
+def activate_fill_contour_mode(layer: Labels):
+    """activate fill contour mode"""
+    layer.mode = Mode.FILL_CONTOUR
+
+
 labels_fun_to_mode = [
     (activate_label_erase_mode, Mode.ERASE),
     (activate_paint_mode, Mode.PAINT),
     (activate_fill_mode, Mode.FILL),
     (activate_label_picker_mode, Mode.PICK),
     (activate_label_pan_zoom_mode, Mode.PAN_ZOOM),
+    (activate_fill_contour_mode, Mode.FILL_CONTOUR),
 ]
 
 
@@ -88,6 +96,17 @@ def decrease_label_id(layer: Labels):
 )
 def increase_label_id(layer: Labels):
     layer.selected_label += 1
+
+
+@register_label_action(
+    trans._("Delete currently selected label."),
+)
+def delete_current_label(layer: Labels):
+    curdata = layer.data.copy()
+    todelete = curdata == layer.selected_label
+    curdata[todelete] = 0
+    layer.data = curdata
+    layer.selected_label = find_next_label(layer)
 
 
 @Labels.bind_key('Control-Z')

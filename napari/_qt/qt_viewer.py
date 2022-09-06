@@ -248,6 +248,8 @@ class QtViewer(QSplitter):
             self._on_active_change
         )
         self.viewer.camera.events.interactive.connect(self._on_interactive)
+        # change cursor size upon zoom
+        self.viewer.camera.events.zoom.connect(self._on_cursor)
         self.viewer.cursor.events.style.connect(self._on_cursor)
         self.viewer.cursor.events.size.connect(self._on_cursor)
         self.viewer.layers.events.reordered.connect(self._reorder_layers)

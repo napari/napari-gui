@@ -395,7 +395,10 @@ class Layer(KeymapProvider, MousemapProvider, ABC):
             callback_list.append(mode_dict[mode])
         self.cursor = self._cursor_modes[mode]
 
-        self.interactive = mode == Modeclass.PAN_ZOOM
+        self.interactive = mode in {
+            Modeclass.PAN_ZOOM,
+            getattr(Modeclass, "FILL_CONTOUR", object()),
+        }
         return mode, True
 
     @classmethod

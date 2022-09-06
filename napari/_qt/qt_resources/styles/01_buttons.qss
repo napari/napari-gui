@@ -158,6 +158,10 @@ QtModeRadioButton[mode="pan_zoom"]::indicator {
     image: url("theme_{{ name }}:/zoom.svg");
 }
 
+QtModeRadioButton[mode="fill_contour"]::indicator {
+    image: url("theme_{{ name }}:/fill_contour.svg");
+}
+
 QtModeRadioButton[mode="select_points"]::indicator {
     image: url("theme_{{ name }}:/select.svg");
 }
