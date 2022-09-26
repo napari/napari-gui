@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import numpy as np
+
 from napari.utils.notifications import show_info
 
 from ...layers.utils.layer_utils import (
@@ -70,63 +72,86 @@ def paste(layer: Points):
     layer._paste_data()
 
 
-@register_points_action(
-    trans._("Select all points in the current view slice."),
-)
-def select_all_in_slice(layer: Points):
-    new_selected = set(layer._indices_view[: len(layer._view_data)])
+def select_data(layer: Points, all_slices=True, shown=False):
+    # If all points are already selected, deselect all points
+    if (
+        len(layer.selected_data) == len(layer.data)
+        and not shown
+        and all_slices
+    ):
+        layer.selected_data = set()
+        show_info(trans._("Cleared all selections.", deferred=True))
+        return
+
+    description = trans._(
+        "Different options:\nA - Select all shown points in this slice\nControl-A - Select all points in this slice\nShift-A - Select all shown points in the layer\nControl-Shift-A - Select all points in the layer",
+        deferred=True,
+    )
+    all_points_on_slice = set(layer._slice_data(layer._slice_indices)[0])
+    if shown and all_slices:
+        new_selected = set(np.where(layer.shown)[0])
+        insert = trans._("shown ", deferred=True)
+    elif shown:
+        new_selected = set(layer._indices_view[: len(layer._view_data)])
+        insert = trans._("shown ", deferred=True)
+    elif all_slices:
+        new_selected = set(range(layer.data.shape[0]))
+        insert = ""
+    else:
+        new_selected = all_points_on_slice
+        insert = ""
 
     # If all visible points are already selected, deselect the visible points
     if new_selected & layer.selected_data == new_selected:
         layer.selected_data = layer.selected_data - new_selected
-        show_info(
-            trans._(
-                "Deselected all points in this slice, use Shift-A to deselect all points on the layer. ({n_total} selected)",
-                n_total=len(layer.selected_data),
-                deferred=True,
-            )
-        )
-
-    # If not all visible points are already selected, additionally select the visible points
+        select_str = trans._("Deselected", deferred=True)
     else:
         layer.selected_data = layer.selected_data | new_selected
-        show_info(
-            trans._(
-                "Selected {n_new} points in this slice, use Shift-A to select all points on the layer. ({n_total} selected)",
-                n_new=len(new_selected),
-                n_total=len(layer.selected_data),
-                deferred=True,
-            )
-        )
+        select_str = trans._("Selected", deferred=True)
+
     layer._set_highlight()
+    show_info(
+        trans._(
+            "{select_str} all {insert}points in this slice.\n{n_slice}/{n_t_slice} selected in the slice\n{n_selected}/{n_total} selected in the layer\n{description}",
+            n_selected=len(layer.selected_data),
+            n_total=len(layer.data),
+            n_slice=len(all_points_on_slice)
+            - len(all_points_on_slice - layer.selected_data),
+            n_t_slice=len(all_points_on_slice),
+            insert=insert,
+            description=description,
+            select_str=select_str,
+            deferred=True,
+        )
+    )
+
+
+@register_points_action(
+    trans._("Select all points in the current view slice."),
+)
+def select_all_in_slice(layer: Points):
+    select_data(layer, all_slices=False, shown=False)
+
+
+@register_points_action(
+    trans._("Select all shown points in the current view slice."),
+)
+def select_all_shown_in_slice(layer: Points):
+    select_data(layer, all_slices=False, shown=True)
 
 
 @register_points_action(
     trans._("Select all points in the layer."),
 )
 def select_all_data(layer: Points):
+    select_data(layer, all_slices=True, shown=False)
 
-    # If all points are already selected, deselect all points
-    if len(layer.selected_data) == len(layer.data):
-        layer.selected_data = set()
-        show_info(trans._("Cleared all selections.", deferred=True))
 
-    # Select all points
-    else:
-        new_selected = set(range(layer.data.shape[0]))
-        # Needed for the notification
-        view_selected = set(layer._indices_view[: len(layer._view_data)])
-        layer.selected_data = new_selected
-        show_info(
-            trans._(
-                "Selected {n_new} points across all slices, including {n_invis} points not currently visible. ({n_total})",
-                n_new=len(new_selected),
-                n_invis=len(new_selected - view_selected),
-                n_total=len(layer.selected_data),
-                deferred=True,
-            )
-        )
-    layer._set_highlight()
+@register_points_action(
+    trans._("Select all shown points in the layer."),
+)
+def select_all_shown_data(layer: Points):
+    select_data(layer, all_slices=True, shown=True)
 
 
 @register_points_action(trans._('Delete selected points'))
