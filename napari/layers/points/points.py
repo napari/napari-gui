@@ -1826,7 +1826,23 @@ class Points(Layer):
 
     def _update_thumbnail(self):
         """Update thumbnail with current points and colors."""
-        colormapped = np.zeros(self._thumbnail_shape)
+        import napari
+        from napari.settings import get_settings
+
+        settings = get_settings()
+        # then modify... e.g:
+        theme = settings.appearance.theme
+        # if set to system theme, get the system theme
+        if theme == 'system':
+            theme = napari.utils.theme.get_system_theme()
+
+        if theme == 'dark':
+            colormapped = np.zeros(self._thumbnail_shape)
+        elif theme == 'light':
+            colormapped = np.ones(self._thumbnail_shape)
+        else:
+            raise RuntimeError(f'Theme {theme} not understood.')
+
         colormapped[..., 3] = 1
         view_data = self._view_data
         if len(view_data) > 0:
@@ -1862,7 +1878,13 @@ class Points(Layer):
             coords = np.clip(coords, 0, thumbnail_shape - 1)
 
             # Draw single pixel points in the colormapped thumbnail.
-            colormapped = np.zeros(tuple(thumbnail_shape) + (4,))
+            if theme == 'dark':
+                colormapped = np.zeros(tuple(thumbnail_shape) + (4,))
+            elif theme == 'light':
+                colormapped = np.ones(tuple(thumbnail_shape) + (4,))
+            else:
+                raise RuntimeError(f'Theme {theme} not understood.')
+
             colormapped[..., 3] = 1
             colors = self._face.colors[thumbnail_indices]
             colormapped[coords[:, 0], coords[:, 1]] = colors
