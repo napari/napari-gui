@@ -6,38 +6,50 @@ import pytest
 
 from napari.components import LayerList
 from napari.layers import Image
+from napari.layers.layergroup import LayerGroup
 
 
-def test_empty_layers_list():
+@pytest.fixture(params=[LayerList, LayerGroup])
+def LayersClass(request):
+    return request.param
+
+
+def test_empty_layers_list(LayersClass):
     """
-    Test instantiating an empty LayerList object
+    Test instantiating an empty LayersClass object
     """
-    layers = LayerList()
+    layers = LayersClass()
 
     assert len(layers) == 0
 
 
-def test_initialize_from_list():
-    layers = LayerList(
+def test_initialize_from_list(LayersClass):
+    layers = LayersClass(
         [Image(np.random.random((10, 10))), Image(np.random.random((10, 10)))]
     )
     assert len(layers) == 2
 
 
-def test_adding_layer():
-    layers = LayerList()
+def test_adding_layer(LayersClass):
+    """
+    Test adding a Layer
+    """
+    layers = LayersClass()
     layer = Image(np.random.random((10, 10)))
     layers.append(layer)
 
-    # LayerList should err if you add anything other than a layer
+    # LayersClass should err if you add anything other than a layer
     with pytest.raises(TypeError):
         layers.append('something')
 
     assert len(layers) == 1
 
 
-def test_removing_layer():
-    layers = LayerList()
+def test_removing_layer(LayersClass):
+    """
+    Test removing a Layer
+    """
+    layers = LayersClass()
     layer = Image(np.random.random((10, 10)))
     layers.append(layer)
     layers.remove(layer)
@@ -45,9 +57,9 @@ def test_removing_layer():
     assert len(layers) == 0
 
 
-def test_popping_layer():
-    """Test popping a layer off layerlist."""
-    layers = LayerList()
+def test_popping_layer(LayersClass):
+    """Test popping a layer off LayersClass."""
+    layers = LayersClass()
     layer = Image(np.random.random((10, 10)))
     layers.append(layer)
     assert len(layers) == 1
@@ -55,11 +67,11 @@ def test_popping_layer():
     assert len(layers) == 0
 
 
-def test_indexing():
+def test_indexing(LayersClass):
     """
-    Test indexing into a LayerList
+    Test indexing into a LayersClass
     """
-    layers = LayerList()
+    layers = LayersClass()
     layer = Image(np.random.random((10, 10)), name='image')
     layers.append(layer)
 
@@ -67,11 +79,11 @@ def test_indexing():
     assert layers['image'] == layer
 
 
-def test_insert():
+def test_insert(LayersClass):
     """
-    Test inserting into a LayerList
+    Test inserting into a LayersClass
     """
-    layers = LayerList()
+    layers = LayersClass()
     layer_a = Image(np.random.random((10, 10)), name='image_a')
     layer_b = Image(np.random.random((15, 15)), name='image_b')
     layers.append(layer_a)
@@ -80,11 +92,11 @@ def test_insert():
     assert list(layers) == [layer_b, layer_a]
 
 
-def test_get_index():
+def test_get_index(LayersClass):
     """
-    Test getting indexing from LayerList
+    Test getting indexing from LayersClass
     """
-    layers = LayerList()
+    layers = LayersClass()
     layer_a = Image(np.random.random((10, 10)), name='image_a')
     layer_b = Image(np.random.random((15, 15)), name='image_b')
     layers.append(layer_a)
@@ -96,11 +108,11 @@ def test_get_index():
     assert layers.index('image_b') == 1
 
 
-def test_reordering():
+def test_reordering(LayersClass):
     """
-    Test indexing into a LayerList by name
+    Test indexing into a LayersClass by name
     """
-    layers = LayerList()
+    layers = LayersClass()
     layer_a = Image(np.random.random((10, 10)), name='image_a')
     layer_b = Image(np.random.random((15, 15)), name='image_b')
     layer_c = Image(np.random.random((15, 15)), name='image_c')
@@ -117,9 +129,9 @@ def test_reordering():
     assert list(layers) == [layer_c, layer_a, layer_b]
 
 
-def test_clearing_layerlist():
+def test_clearing_LayersClass(LayersClass):
     """Test clearing layer list."""
-    layers = LayerList()
+    layers = LayersClass()
     layer = Image(np.random.random((10, 10)))
     layer2 = Image(np.random.random((10, 10)))
     layers.append(layer)
@@ -130,9 +142,9 @@ def test_clearing_layerlist():
     assert len(layers) == 0
 
 
-def test_remove_selected():
+def test_remove_selected(LayersClass):
     """Test removing selected layers."""
-    layers = LayerList()
+    layers = LayersClass()
     layer_a = Image(np.random.random((10, 10)))
     layer_b = Image(np.random.random((15, 15)))
     layer_c = Image(np.random.random((15, 15)))
@@ -292,11 +304,11 @@ def test_move_selected():
     assert layers.selection == {layer_b, layer_e}
 
 
-def test_toggle_visibility():
+def test_toggle_visibility(LayersClass):
     """
     Test toggling layer visibility
     """
-    layers = LayerList()
+    layers = LayersClass()
     layer_a = Image(np.random.random((10, 10)))
     layer_b = Image(np.random.random((15, 15)))
     layer_c = Image(np.random.random((15, 15)))
@@ -325,10 +337,10 @@ def test_toggle_visibility():
 
 # the layer_data_and_types fixture is defined in napari/conftest.py
 @pytest.mark.filterwarnings('ignore:distutils Version classes are deprecated')
-def test_layers_save(builtins, tmpdir, layer_data_and_types):
+def test_layers_save(builtins, tmpdir, layer_data_and_types, LayersClass):
     """Test saving all layer data."""
     list_of_layers, _, _, filenames = layer_data_and_types
-    layers = LayerList(list_of_layers)
+    layers = LayersClass(list_of_layers)
 
     path = os.path.join(tmpdir, 'layers_folder')
 
@@ -351,10 +363,12 @@ def test_layers_save(builtins, tmpdir, layer_data_and_types):
 
 
 # the layer_data_and_types fixture is defined in napari/conftest.py
-def test_layers_save_none_selected(builtins, tmpdir, layer_data_and_types):
+def test_layers_save_none_selected(
+    builtins, tmpdir, layer_data_and_types, LayersClass
+):
     """Test saving all layer data."""
     list_of_layers, _, _, filenames = layer_data_and_types
-    layers = LayerList(list_of_layers)
+    layers = LayersClass(list_of_layers)
     layers.selection.clear()
 
     path = os.path.join(tmpdir, 'layers_folder')
@@ -378,10 +392,12 @@ def test_layers_save_none_selected(builtins, tmpdir, layer_data_and_types):
 
 
 # the layer_data_and_types fixture is defined in napari/conftest.py
-def test_layers_save_selected(builtins, tmpdir, layer_data_and_types):
+def test_layers_save_selected(
+    builtins, tmpdir, layer_data_and_types, LayersClass
+):
     """Test saving all layer data."""
     list_of_layers, _, _, filenames = layer_data_and_types
-    layers = LayerList(list_of_layers)
+    layers = LayersClass(list_of_layers)
     layers.selection.clear()
     layers.selection.update({layers[0], layers[2]})
 
@@ -409,7 +425,7 @@ def test_layers_save_selected(builtins, tmpdir, layer_data_and_types):
 
 # the layers fixture is defined in napari/conftest.py
 @pytest.mark.filterwarnings('ignore:`np.int` is a deprecated alias for')
-def test_layers_save_svg(tmpdir, layers, napari_svg_name):
+def test_layers_save_svg(tmpdir, layers, napari_svg_name, LayersClass):
     """Test saving all layer data to an svg."""
     pm = npe2.PluginManager.instance()
     pm.register(npe2.PluginManifest.from_distribution('napari-svg'))
@@ -426,10 +442,10 @@ def test_layers_save_svg(tmpdir, layers, napari_svg_name):
     assert os.path.isfile(path)
 
 
-def test_world_extent():
+def test_world_extent(LayersClass):
     """Test world extent after adding layers."""
     np.random.seed(0)
-    layers = LayerList()
+    layers = LayersClass()
 
     # Empty data is taken to be 512 x 512
     np.testing.assert_allclose(layers.extent.world[0], (-0.5, -0.5))
@@ -459,10 +475,10 @@ def test_world_extent():
     np.testing.assert_allclose(layers.extent.step, (3, 1, 1))
 
 
-def test_world_extent_mixed_ndim():
+def test_world_extent_mixed_ndim(LayersClass):
     """Test world extent after adding layers of different dimensionality."""
     np.random.seed(0)
-    layers = LayerList()
+    layers = LayersClass()
 
     # Add 3D layer
     layer_a = Image(np.random.random((15, 15, 15)), scale=(4, 12, 2))
@@ -482,13 +498,13 @@ def test_world_extent_mixed_ndim():
     np.testing.assert_allclose(layers.extent.step, (4, 6, 2))
 
 
-def test_world_extent_mixed_flipped():
+def test_world_extent_mixed_flipped(LayersClass):
     """Test world extent after adding data with a flip."""
     # Flipped data results in a negative scale value which should be
     # made positive when taking into consideration for the step size
     # calculation
     np.random.seed(0)
-    layers = LayerList()
+    layers = LayersClass()
 
     layer = Image(
         np.random.random((15, 15)), affine=[[0, 1, 0], [1, 0, 0], [0, 0, 1]]
@@ -498,10 +514,10 @@ def test_world_extent_mixed_flipped():
     np.testing.assert_allclose(layers.extent.step, (1, 1))
 
 
-def test_ndim():
+def test_ndim(LayersClass):
     """Test world extent after adding layers."""
     np.random.seed(0)
-    layers = LayerList()
+    layers = LayersClass()
 
     assert layers.ndim == 2
 
@@ -520,8 +536,8 @@ def test_ndim():
     assert layers.ndim == 2
 
 
-def test_name_uniqueness():
-    layers = LayerList()
+def test_name_uniqueness(LayersClass):
+    layers = LayersClass()
     layers.append(Image(np.random.random((10, 15)), name="Image [1]"))
     layers.append(Image(np.random.random((10, 15)), name="Image"))
     layers.append(Image(np.random.random((10, 15)), name="Image"))

@@ -29,7 +29,6 @@ from napari.components.camera import Camera
 from napari.components.cursor import Cursor
 from napari.components.dims import Dims
 from napari.components.grid import GridCanvas
-from napari.components.layerlist import LayerList
 from napari.components.overlays import (
     AxesOverlay,
     BrushCircleOverlay,
@@ -57,6 +56,7 @@ from napari.layers._source import layer_source
 from napari.layers.image._image_key_bindings import image_fun_to_mode
 from napari.layers.image._image_utils import guess_labels
 from napari.layers.labels._labels_key_bindings import labels_fun_to_mode
+from napari.layers.layergroup import LayerGroup
 from napari.layers.points._points_key_bindings import points_fun_to_mode
 from napari.layers.shapes._shapes_key_bindings import shapes_fun_to_mode
 from napari.layers.surface._surface_key_bindings import surface_fun_to_mode
@@ -175,8 +175,8 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
     cursor: Cursor = Field(default_factory=Cursor, allow_mutation=False)
     dims: Dims = Field(default_factory=Dims, allow_mutation=False)
     grid: GridCanvas = Field(default_factory=GridCanvas, allow_mutation=False)
-    layers: LayerList = Field(
-        default_factory=LayerList, allow_mutation=False
+    layers: LayerGroup = Field(
+        default_factory=LayerGroup, allow_mutation=False
     )  # Need to create custom JSON encoder for layer!
     help: str = ''
     status: Union[str, Dict] = 'Ready'

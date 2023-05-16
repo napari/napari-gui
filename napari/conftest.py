@@ -51,6 +51,7 @@ from IPython.core.history import HistoryManager
 
 from napari.components import LayerList
 from napari.layers import Image, Labels, Points, Shapes, Vectors
+from napari.layers.layergroup import LayerGroup
 from napari.utils.config import async_loading
 from napari.utils.misc import ROOT_DIR
 
@@ -160,8 +161,8 @@ def layer(request):
     return None
 
 
-@pytest.fixture()
-def layers():
+@pytest.fixture(params=[LayerList, LayerGroup])
+def layers(request):
     """Fixture that supplies a layers list for testing.
 
     Returns
@@ -177,7 +178,7 @@ def layers():
         Shapes(np.random.rand(10, 2, 2)),
         Vectors(np.random.rand(10, 2, 2)),
     ]
-    return LayerList(list_of_layers)
+    return request.param(list_of_layers)
 
 
 # Currently we cannot run async and async in the invocation of pytest

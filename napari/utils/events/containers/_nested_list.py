@@ -232,8 +232,8 @@ class NestableEventedList(EventedList[_T]):
         """Insert object before index."""
         # this is delicate, we want to preserve the evented list when nesting
         # but there is a high risk here of clobbering attributes of a special
-        # child class
-        if isinstance(value, list):
+        # child class, so checking for self.__class__ helps
+        if isinstance(value, list) and not isinstance(value, self.__class__):
             value = self.__newlike__(value)
         super().insert(index, value)
 
@@ -458,7 +458,7 @@ class NestableEventedList(EventedList[_T]):
         return True
 
     def _type_check(self, e) -> _T:
-        if isinstance(e, list):
+        if isinstance(e, list) and not isinstance(e, self.__class__):
             return self.__newlike__(e)
         if self._basetypes:
             _types = (*tuple(self._basetypes), NestableEventedList)

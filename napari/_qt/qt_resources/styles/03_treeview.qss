@@ -1,0 +1,76 @@
+
+
+/*  TreeView Styles */
+
+QTreeView {
+  margin-right: 4px;
+  min-width: 200px;
+}
+
+QTreeView::item {
+  padding: 4px;
+}
+
+QtLayerTreeView::item {
+  margin: 2px 0px 2px 32px;
+  background-color: {{ foreground }};
+  border-top-right-radius: 2px;
+  border-bottom-right-radius: 2px;
+  border: 1px solid {{ foreground }};
+}
+
+QtLayerTreeView::item:hover {
+  border: 1px solid {{ highlight }};
+}
+
+QtLayerTreeView::item::text {
+  font-size: 8px;
+}
+
+QTreeView::branch:closed:has-children {
+  image: url("theme_{{ name }}:/caret-right.svg");
+  image: url("theme_{{ name }}:/delete.svg");
+  padding: 6px;
+}
+QTreeView::branch:open:has-children {
+  image: url("theme_{{ name }}:/caret-down.svg");
+  padding: 5px;
+}
+QTreeView::branch:selected {
+  background-color: {{ background }};
+}
+
+QTreeView::item:selected:active{
+  background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 {{ current }}, stop: 1 {{ darken(current, 15) }});
+}
+
+QTreeView::item:selected:!active {
+  background: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 {{ darken(current, 10) }}, stop: 1 {{ darken(current, 25) }});
+}
+
+QTreeView::indicator{
+  width: 16px;
+  height: 16px;
+  position: absolute;
+  left: 0px;
+}
+
+QTreeView QLineEdit {
+  background-color: {{ darken(current, 20) }};
+  selection-background-color: {{ lighten(current, 20) }};
+  font-size: 12px;
+}
+
+
+/* the first one is the "partially checked" state */
+QtLayerTreeView::indicator {
+  image: url("theme_{{ name }}:/visibility_off.svg");
+}
+
+QtLayerTreeView::indicator:unchecked {
+  image: url("theme_{{ name }}:/2D.svg");
+}
+
+QtLayerTreeView::indicator:checked {
+  image: url("theme_{{ name }}:/visibility.svg");
+}

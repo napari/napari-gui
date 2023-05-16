@@ -4,7 +4,10 @@ from typing import List, Optional, Tuple, TypeVar
 
 from qtpy.QtCore import QMimeData, QModelIndex, Qt
 
-from napari._qt.containers._base_item_model import _BaseEventedItemModel
+from napari._qt.containers._base_item_model import (
+    SortRole,
+    _BaseEventedItemModel,
+)
 from napari.utils.translations import trans
 from napari.utils.tree import Group, Node
 
@@ -38,6 +41,8 @@ class QtNodeTreeModel(_BaseEventedItemModel[NodeType]):
             return item._node_name()
         if role == Qt.ItemDataRole.UserRole:
             return self.getItem(index)
+        if role == SortRole:
+            return index.row()
         return None
 
     def index(

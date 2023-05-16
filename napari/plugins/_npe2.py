@@ -179,8 +179,8 @@ def file_extensions_string_for_layers(
         "Images (*.png *.jpg *.tif);;All Files (*.*)"
 
     The writers, when provided, are the
-    `npe2.manifest.io.WriterContribution` objects. There is one writer per
-    entry in the extension string.
+    `npe2.manifest.contributions.WriterContribution` objects. There is one
+    writer per entry in the extension string.
     """
 
     layer_types = [layer._type_string for layer in layers]

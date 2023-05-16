@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Union
 
 from napari.components.layerlist import LayerList
+from napari.layers.layergroup import LayerGroup
 from napari.utils.events import SelectableEventedList
 from napari.utils.translations import trans
 from napari.utils.tree import Group
@@ -64,12 +65,15 @@ def create_model(
     """
     from napari._qt.containers import (
         QtLayerListModel,
+        QtLayerTreeModel,
         QtListModel,
         QtNodeTreeModel,
     )
 
     if isinstance(obj, LayerList):
         return QtLayerListModel(obj, parent=parent)
+    if isinstance(obj, LayerGroup):
+        return QtLayerTreeModel(obj, parent=parent)
     if isinstance(obj, Group):
         return QtNodeTreeModel(obj, parent=parent)
     if isinstance(obj, SelectableEventedList):

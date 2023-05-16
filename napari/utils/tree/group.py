@@ -82,10 +82,20 @@ class Group(Node, SelectableNestableEventedList[NodeType]):
                 item.parent = None
         super().__delitem__(key)
 
-    def insert(self, index: int, value):
-        """Insert ``value`` as child of this group at position ``index``."""
-        value.parent = self
-        super().insert(index, value)
+    @staticmethod
+    def _reparent(item, parent):
+        if isinstance(item, Group):
+            for el in item:
+                Group._reparent(el, item)
+        item.parent = parent
+
+    def _process_inserted_item(self, item):
+        # when an item gets finally inserted, there is a chance that it is a `Group` object that
+        # was created by __newlike__ (and therefore has no parents); this happens due to `_type_check`
+        # creating a __newlike__ when objects are lists. We cannot override this behaviour, otherwise
+        # every time element types are checked, things get reparented (at best a million events, at
+        # worst everything breaks). To fix this, we recursively reparent children after insertion.
+        Group._reparent(item, self)
 
     def is_group(self) -> bool:
         """Return True, indicating that this ``Node`` is a ``Group``."""

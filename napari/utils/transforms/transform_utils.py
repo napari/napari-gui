@@ -110,7 +110,10 @@ def translate_to_vector(translate, *, ndim):
     """
     translate_arr = np.zeros(ndim)
     if translate is not None:
-        translate_arr[-len(translate) :] = translate
+        if len(translate) > ndim:
+            translate_arr[:] = translate[:ndim]
+        else:
+            translate_arr[-len(translate) :] = translate
     return translate_arr
 
 

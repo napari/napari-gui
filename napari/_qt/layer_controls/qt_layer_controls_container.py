@@ -2,6 +2,9 @@ from qtpy.QtWidgets import QFrame, QStackedWidget
 
 from napari._qt.layer_controls.qt_image_controls import QtImageControls
 from napari._qt.layer_controls.qt_labels_controls import QtLabelsControls
+from napari._qt.layer_controls.qt_layergroup_controls import (
+    QtLayerGroupControls,
+)
 from napari._qt.layer_controls.qt_points_controls import QtPointsControls
 from napari._qt.layer_controls.qt_shapes_controls import QtShapesControls
 from napari._qt.layer_controls.qt_surface_controls import QtSurfaceControls
@@ -16,6 +19,7 @@ from napari.layers import (
     Tracks,
     Vectors,
 )
+from napari.layers.layergroup import LayerGroup
 from napari.utils import config
 from napari.utils.translations import trans
 
@@ -27,6 +31,7 @@ layer_to_controls = {
     Surface: QtSurfaceControls,
     Vectors: QtVectorsControls,
     Tracks: QtTracksControls,
+    LayerGroup: QtLayerGroupControls,
 }
 
 if config.async_loading:
@@ -146,11 +151,17 @@ class QtLayerControlsContainer(QStackedWidget):
         event : Event
             Event with the target layer at `event.value`.
         """
-        layer = event.value
-        controls = create_qt_layer_controls(layer)
-        controls.ndisplay = self.viewer.dims.ndisplay
-        self.addWidget(controls)
-        self.widgets[layer] = controls
+
+        def add_children(layer):
+            if layer.is_group():
+                for child in layer:
+                    add_children(child)
+            controls = create_qt_layer_controls(layer)
+            controls.ndisplay = self.viewer.dims.ndisplay
+            self.addWidget(controls)
+            self.widgets[layer] = controls
+
+        add_children(event.value)
 
     def _remove(self, event):
         """Remove the controls target layer from the list of control widgets.
@@ -160,10 +171,16 @@ class QtLayerControlsContainer(QStackedWidget):
         event : Event
             Event with the target layer at `event.value`.
         """
-        layer = event.value
-        controls = self.widgets[layer]
-        self.removeWidget(controls)
-        controls.hide()
-        controls.deleteLater()
-        controls = None
-        del self.widgets[layer]
+
+        def remove_children(layer):
+            if layer.is_group():
+                for child in layer:
+                    remove_children(child)
+            controls = self.widgets[layer]
+            self.removeWidget(controls)
+            controls.hide()
+            controls.deleteLater()
+            controls = None
+            del self.widgets[layer]
+
+        remove_children(event.value)

@@ -11,6 +11,7 @@ from napari.layers._layer_actions import (
     _project,
     _toggle_visibility,
 )
+from napari.layers.layergroup import LayerGroup
 
 
 def test_toggle_visibility():
@@ -77,8 +78,9 @@ def test_duplicate_layers(layer_type):
 @pytest.mark.parametrize(
     'mode', ['max', 'min', 'std', 'sum', 'mean', 'median']
 )
-def test_projections(mode):
-    ll = LayerList()
+@pytest.mark.parametrize('LayersClass', [LayerList, LayerGroup])
+def test_projections(mode, LayersClass):
+    ll = LayersClass()
     ll.append(Image(np.random.rand(8, 8, 8)))
     assert len(ll) == 1
     assert ll[-1].data.ndim == 3
@@ -92,8 +94,9 @@ def test_projections(mode):
     'mode',
     ['int8', 'int16', 'int32', 'int64', 'uint8', 'uint16', 'uint32', 'uint64'],
 )
-def test_convert_dtype(mode):
-    ll = LayerList()
+@pytest.mark.parametrize('LayersClass', [LayerList, LayerGroup])
+def test_convert_dtype(mode, LayersClass):
+    ll = LayersClass()
     data = np.zeros((10, 10), dtype=np.int16)
     ll.append(Labels(data))
     assert ll[-1].data.dtype == np.int16
@@ -121,11 +124,12 @@ def test_convert_dtype(mode):
         (Shapes([np.array([[0, 0], [0, 10], [10, 0], [10, 10]])]), 'labels'),
     ],
 )
-def test_convert_layer(layer, type_):
-    ll = LayerList()
+@pytest.mark.parametrize('LayersClass', [LayerList, LayerGroup])
+def test_convert_layer(layer, type_, LayersClass):
+    ll = LayersClass()
     layer.scale *= 1.5
     original_scale = layer.scale.copy()
-    ll.append(layer)
+    ll.append(input)
     assert ll[0]._type_string != type_
     _convert(ll, type_)
     assert ll[0]._type_string == type_

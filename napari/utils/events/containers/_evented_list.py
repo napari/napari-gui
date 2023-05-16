@@ -186,14 +186,18 @@ class EventedList(TypedMutableSequence[_T]):
             parent.events.removed(index=index, value=item)
 
     def _process_delete_item(self, item: _T):
-        """Allow process item in inherited class before event was emitted"""
+        """Allow processing item in inherited class before delete event is emitted"""
 
     def insert(self, index: int, value: _T):
         """Insert ``value`` before index."""
         self.events.inserting(index=index)
         super().insert(index, value)
+        self._process_inserted_item(self[index])
         self.events.inserted(index=index, value=value)
         self._connect_child_emitters(value)
+
+    def _process_inserted_item(self, item):
+        """Allow processing item in inherited class before insert event is emitted, but after it was inserted"""
 
     def _reemit_child_event(self, event: Event):
         """An item in the list emitted an event.  Re-emit with index"""

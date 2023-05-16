@@ -1,3 +1,4 @@
+import os
 import warnings
 from functools import wraps
 from typing import TYPE_CHECKING
@@ -87,6 +88,15 @@ class QtLayerButtons(QFrame):
         layout.addStretch(0)
         layout.addWidget(self.deleteButton)
         self.setLayout(layout)
+
+        # This can be always added after layergroups are fully capable
+        if os.getenv("ALLOW_LAYERGROUPS"):
+            self.newGroupButton = QtViewerPushButton(
+                'new_group',
+                trans._('New layer group'),
+                self.viewer.layers.add_group,
+            )
+            layout.insertWidget(3, self.newGroupButton)
 
 
 class QtViewerButtons(QFrame):

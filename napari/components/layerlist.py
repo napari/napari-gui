@@ -15,10 +15,155 @@ from napari.utils.translations import trans
 Extent = namedtuple('Extent', 'data world step')
 
 if TYPE_CHECKING:
-    from npe2.manifest.io import WriterContribution
+    from npe2.manifest.contributions import WriterContribution
 
 
-class LayerList(SelectableEventedList[Layer]):
+class _LayerListMixin:
+    def __newlike__(self, data):
+        return type(self)(data)
+
+    def _on_selection_changed(self, event):
+        # This method is a temporary workaround to the fact that the Points
+        # layer needs to know when its selection state changes so that it can
+        # update the highlight state.  This (and the layer._on_selection
+        # method) can be removed once highlighting logic has been removed from
+        # the layer model.
+        for layer in event.added:
+            layer._on_selection(True)
+        for layer in event.removed:
+            layer._on_selection(False)
+
+    def toggle_selected_visibility(self):
+        """Toggle visibility of selected layers"""
+        for layer in self.selection:
+            layer.visible = not layer.visible
+
+    def _link_layers(
+        self,
+        method: str,
+        layers: Optional[Iterable[Union[str, Layer]]] = None,
+        attributes: Iterable[str] = (),
+    ):
+        # adding this method here allows us to emit an event when
+        # layers in this group are linked/unlinked.  Which is necessary
+        # for updating context
+        from napari.layers.utils import _link_layers
+
+        if layers is not None:
+            layers = [self[x] if isinstance(x, str) else x for x in layers]  # type: ignore
+        else:
+            layers = self
+        getattr(_link_layers, method)(layers, attributes)
+        self.selection.events.changed(added={}, removed={})
+
+    def link_layers(
+        self,
+        layers: Optional[Iterable[Union[str, Layer]]] = None,
+        attributes: Iterable[str] = (),
+    ):
+        return self._link_layers('link_layers', layers, attributes)
+
+    def unlink_layers(
+        self,
+        layers: Optional[Iterable[Union[str, Layer]]] = None,
+        attributes: Iterable[str] = (),
+    ):
+        return self._link_layers('unlink_layers', layers, attributes)
+
+    @cached_property
+    def _ranges(self) -> List[Tuple[float, float, float]]:
+        """Get ranges for Dims.range in world coordinates.
+
+        This shares some code in common with the `extent` property, but
+        determines Dims.range settings for each dimension such that each
+        range is aligned to pixel centers at the finest scale.
+        """
+        if len(self) == 0:
+            return [(0, 1, 1)] * self.ndim
+
+        # Determine minimum step size across all layers
+        layer_extent_list = [layer.extent for layer in self]
+        scales = [extent.step for extent in layer_extent_list]
+        min_steps = self._step_size_from_scales(scales)
+
+        # Pixel-based layers need to be offset by 0.5 * min_steps to align
+        # Dims.range with pixel centers in world coordinates
+        pixel_offsets = [
+            0.5 * min_steps
+            if isinstance(layer, _ImageBase)
+            else [0] * len(min_steps)
+            for layer in self
+        ]
+
+        # Non-pixel layers need an offset of the range stop by min_steps since the upper
+        # limit of Dims.range is non-inclusive.
+        point_offsets = [
+            [0] * len(min_steps)
+            if isinstance(layer, _ImageBase)
+            else min_steps
+            for layer in self
+        ]
+
+        # Determine world coordinate extents similarly to
+        # `_get_extent_world`, but including offsets calculated above.
+        extrema = [extent.world for extent in layer_extent_list]
+        mins = [
+            e[0] + o1[: len(e[0])] for e, o1 in zip(extrema, pixel_offsets)
+        ]
+        maxs = [
+            e[1] + o1[: len(e[0])] + o2[: len(e[0])]
+            for e, o1, o2 in zip(extrema, pixel_offsets, point_offsets)
+        ]
+        min_v, max_v = self._get_min_and_max(mins, maxs)
+
+        # form range tuples, switching back to original dimension order
+        return list(zip(min_v, max_v, min_steps))
+
+    def _step_size_from_scales(self, scales):
+        # Reverse order so last axes of scale with different ndim are aligned
+        scales = [scale[::-1] for scale in scales]
+        full_scales = list(
+            np.array(list(itertools.zip_longest(*scales, fillvalue=np.nan)))
+        )
+        # restore original order
+        return np.nanmin(full_scales, axis=1)[::-1]
+
+    def _get_min_and_max(self, mins_list, maxes_list):
+        # Reverse dimensions since it is the last dimensions that are
+        # displayed.
+        mins_list = [mins[::-1] for mins in mins_list]
+        maxes_list = [maxes[::-1] for maxes in maxes_list]
+
+        with warnings.catch_warnings():
+            # Taking the nanmin and nanmax of an axis of all nan
+            # raises a warning and returns nan for that axis
+            # as we have do an explicit nan_to_num below this
+            # behaviour is acceptable and we can filter the
+            # warning
+            warnings.filterwarnings(
+                'ignore',
+                message=str(
+                    trans._('All-NaN axis encountered', deferred=True)
+                ),
+            )
+            min_v = np.nanmin(
+                list(itertools.zip_longest(*mins_list, fillvalue=np.nan)),
+                axis=1,
+            )
+            max_v = np.nanmax(
+                list(itertools.zip_longest(*maxes_list, fillvalue=np.nan)),
+                axis=1,
+            )
+
+        # 512 element default extent as documented in `_get_extent_world`
+        min_v = np.nan_to_num(min_v, nan=-0.5)
+        max_v = np.nan_to_num(max_v, nan=511.5)
+
+        # switch back to original order
+        return min_v[::-1], max_v[::-1]
+
+
+class LayerList(_LayerListMixin, SelectableEventedList[Layer]):
     """List-like layer collection with built-in reordering and callback hooks.
 
     Parameters
@@ -81,34 +226,6 @@ class LayerList(SelectableEventedList[Layer]):
         # temporary: see note in _on_selection_event
         self.selection.events.changed.connect(self._on_selection_changed)
 
-    def _on_selection_changed(self, event):
-        # This method is a temporary workaround to the fact that the Points
-        # layer needs to know when its selection state changes so that it can
-        # update the highlight state.  This (and the layer._on_selection
-        # method) can be removed once highlighting logic has been removed from
-        # the layer model.
-        for layer in event.added:
-            layer._on_selection(True)
-        for layer in event.removed:
-            layer._on_selection(False)
-
-    def _process_delete_item(self, item: Layer):
-        super()._process_delete_item(item)
-        item.events.extent.disconnect(self._clean_cache)
-        self._clean_cache()
-
-    def _clean_cache(self):
-        cached_properties = (
-            'extent',
-            '_extent_world',
-            '_step_size',
-            '_ranges',
-        )
-        [self.__dict__.pop(p, None) for p in cached_properties]
-
-    def __newlike__(self, data):
-        return LayerList(data)
-
     def _coerce_name(self, name, layer=None):
         """Coerce a name into a unique equivalent.
 
@@ -166,10 +283,19 @@ class LayerList(SelectableEventedList[Layer]):
         new_layer.events.extent.connect(self._clean_cache)
         super().insert(index, new_layer)
 
-    def toggle_selected_visibility(self):
-        """Toggle visibility of selected layers"""
-        for layer in self.selection:
-            layer.visible = not layer.visible
+    def _process_delete_item(self, item: Layer):
+        super()._process_delete_item(item)
+        item.events.extent.disconnect(self._clean_cache)
+        self._clean_cache()
+
+    def _clean_cache(self):
+        cached_properties = (
+            'extent',
+            '_extent_world',
+            '_step_size',
+            '_ranges',
+        )
+        [self.__dict__.pop(p, None) for p in cached_properties]
 
     @cached_property
     def _extent_world(self) -> np.ndarray:
@@ -183,40 +309,6 @@ class LayerList(SelectableEventedList[Layer]):
         extent_world : array, shape (2, D)
         """
         return self._get_extent_world([layer.extent for layer in self])
-
-    def _get_min_and_max(self, mins_list, maxes_list):
-        # Reverse dimensions since it is the last dimensions that are
-        # displayed.
-        mins_list = [mins[::-1] for mins in mins_list]
-        maxes_list = [maxes[::-1] for maxes in maxes_list]
-
-        with warnings.catch_warnings():
-            # Taking the nanmin and nanmax of an axis of all nan
-            # raises a warning and returns nan for that axis
-            # as we have do an explicit nan_to_num below this
-            # behaviour is acceptable and we can filter the
-            # warning
-            warnings.filterwarnings(
-                'ignore',
-                message=str(
-                    trans._('All-NaN axis encountered', deferred=True)
-                ),
-            )
-            min_v = np.nanmin(
-                list(itertools.zip_longest(*mins_list, fillvalue=np.nan)),
-                axis=1,
-            )
-            max_v = np.nanmax(
-                list(itertools.zip_longest(*maxes_list, fillvalue=np.nan)),
-                axis=1,
-            )
-
-        # 512 element default extent as documented in `_get_extent_world`
-        min_v = np.nan_to_num(min_v, nan=-0.5)
-        max_v = np.nan_to_num(max_v, nan=511.5)
-
-        # switch back to original order
-        return min_v[::-1], max_v[::-1]
 
     def _get_extent_world(self, layer_extent_list):
         """Extent of layers in world coordinates.
@@ -252,15 +344,6 @@ class LayerList(SelectableEventedList[Layer]):
         step_size : array, shape (D,)
         """
         return self._get_step_size([layer.extent for layer in self])
-
-    def _step_size_from_scales(self, scales):
-        # Reverse order so last axes of scale with different ndim are aligned
-        scales = [scale[::-1] for scale in scales]
-        full_scales = list(
-            np.array(list(itertools.zip_longest(*scales, fillvalue=np.nan)))
-        )
-        # restore original order
-        return np.nanmin(full_scales, axis=1)[::-1]
 
     def _get_step_size(self, layer_extent_list):
         if len(self) == 0:
@@ -298,58 +381,6 @@ class LayerList(SelectableEventedList[Layer]):
         """Extent of layers in data and world coordinates."""
         return self.get_extent(list(self))
 
-    @cached_property
-    def _ranges(self) -> List[Tuple[float, float, float]]:
-        """Get ranges for Dims.range in world coordinates.
-
-        This shares some code in common with the `extent` property, but
-        determines Dims.range settings for each dimension such that each
-        range is aligned to pixel centers at the finest scale.
-        """
-        if len(self) == 0:
-            return [(0, 1, 1)] * self.ndim
-
-        # Determine minimum step size across all layers
-        layer_extent_list = [layer.extent for layer in self]
-        scales = [extent.step for extent in layer_extent_list]
-        min_steps = self._step_size_from_scales(scales)
-
-        # Pixel-based layers need to be offset by 0.5 * min_steps to align
-        # Dims.range with pixel centers in world coordinates
-        pixel_offsets = [
-            0.5 * min_steps
-            if isinstance(layer, _ImageBase)
-            else [0] * len(min_steps)
-            for layer in self
-        ]
-
-        # Non-pixel layers need an offset of the range stop by min_steps since the upper
-        # limit of Dims.range is non-inclusive.
-        point_offsets = [
-            [0] * len(min_steps)
-            if isinstance(layer, _ImageBase)
-            else min_steps
-            for layer in self
-        ]
-
-        # Determine world coordinate extents similarly to
-        # `_get_extent_world`, but including offsets calculated above.
-        extrema = [extent.world for extent in layer_extent_list]
-        mins = [
-            e[0] + o1[: len(e[0])] for e, o1 in zip(extrema, pixel_offsets)
-        ]
-        maxs = [
-            e[1] + o1[: len(e[0])] + o2[: len(e[0])]
-            for e, o1, o2 in zip(extrema, pixel_offsets, point_offsets)
-        ]
-        min_v, max_v = self._get_min_and_max(mins, maxs)
-
-        # form range tuples, switching back to original dimension order
-        return [
-            (start, stop, step)
-            for start, stop, step in zip(min_v, max_v, min_steps)
-        ]
-
     @property
     def ndim(self) -> int:
         """Maximum dimensionality of layers.
@@ -361,38 +392,6 @@ class LayerList(SelectableEventedList[Layer]):
         ndim : int
         """
         return max((layer.ndim for layer in self), default=2)
-
-    def _link_layers(
-        self,
-        method: str,
-        layers: Optional[Iterable[Union[str, Layer]]] = None,
-        attributes: Iterable[str] = (),
-    ):
-        # adding this method here allows us to emit an event when
-        # layers in this group are linked/unlinked.  Which is necessary
-        # for updating context
-        from napari.layers.utils import _link_layers
-
-        if layers is not None:
-            layers = [self[x] if isinstance(x, str) else x for x in layers]  # type: ignore
-        else:
-            layers = self
-        getattr(_link_layers, method)(layers, attributes)
-        self.selection.events.changed(added={}, removed={})
-
-    def link_layers(
-        self,
-        layers: Optional[Iterable[Union[str, Layer]]] = None,
-        attributes: Iterable[str] = (),
-    ):
-        return self._link_layers('link_layers', layers, attributes)
-
-    def unlink_layers(
-        self,
-        layers: Optional[Iterable[Union[str, Layer]]] = None,
-        attributes: Iterable[str] = (),
-    ):
-        return self._link_layers('unlink_layers', layers, attributes)
 
     def save(
         self,

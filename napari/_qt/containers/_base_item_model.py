@@ -17,6 +17,7 @@ ItemType = TypeVar("ItemType")
 
 ItemRole = Qt.UserRole
 SortRole = Qt.UserRole + 1
+ThumbnailRole = Qt.UserRole + 2
 
 _BASE_FLAGS = (
     Qt.ItemFlag.ItemIsSelectable

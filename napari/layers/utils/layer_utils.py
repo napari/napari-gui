@@ -1009,6 +1009,31 @@ def _features_to_properties(features: pd.DataFrame) -> Dict[str, np.ndarray]:
     return {name: series.to_numpy() for name, series in features.items()}
 
 
+def combine_extents(extents):
+    """Combine extents into a single extent that bounds all individual ones.
+    Each extent can be cast to an ndim x 2 (min, max) array, but ndim
+    could be different for each extent because of broadcasting. In that case,
+    we need to *prepend* the row (0, 0) to each array so that they match in
+    size.
+    """
+    if len(extents) == 0:
+        return []
+    extent_arrays = [np.array(ex) for ex in extents]
+    ndims = [arr.shape[1] for arr in extent_arrays]
+    required_ndims = max(ndims)
+    dims_to_prepend = [required_ndims - d for d in ndims]
+    padded_arrays = [
+        np.pad(ex, ((0, 0), (d, 0)))
+        for ex, d in zip(extent_arrays, dims_to_prepend)
+    ]
+    big_array = np.stack(padded_arrays, axis=0)
+    result = np.stack(
+        [np.min(big_array[:, 0], axis=0), np.max(big_array[:, 1], axis=0)],
+        axis=1,
+    ).T
+    return result
+
+
 def _unique_element(array: Array) -> Optional[Any]:
     """
     Returns the unique element along the 0th axis, if it exists; otherwise, returns None.

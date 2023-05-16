@@ -13,7 +13,7 @@ from qtpy.QtGui import QGuiApplication
 from qtpy.QtWidgets import QFileDialog, QSplitter, QVBoxLayout, QWidget
 from superqt import ensure_main_thread
 
-from napari._qt.containers import QtLayerList
+from napari._qt.containers import QtLayerTreeView
 from napari._qt.dialogs.qt_reader_dialog import handle_gui_reading
 from napari._qt.dialogs.screenshot_dialog import ScreenshotDialog
 from napari._qt.perf.qt_performance import QtPerformance
@@ -319,10 +319,9 @@ class QtViewer(QSplitter):
         return self._controls
 
     @property
-    def layers(self) -> QtLayerList:
-        """Qt view for LayerList controls."""
+    def layers(self) -> QtLayerTreeView:
         if self._layers is None:
-            self._layers = QtLayerList(self.viewer.layers)
+            self._layers = QtLayerTreeView(self.viewer.layers)
         return self._layers
 
     @property
@@ -520,21 +519,29 @@ class QtViewer(QSplitter):
         layer : napari.layers.Layer
             Layer to be added.
         """
-        vispy_layer = create_vispy_layer(layer)
 
-        # QtPoll is experimental.
-        if self._qt_poll is not None:
-            # QtPoll will call VipyBaseImage._on_poll() when the camera
-            # moves or the timer goes off.
-            self._qt_poll.events.poll.connect(vispy_layer._on_poll)
+        def add_children(layer):
+            vispy_layer = create_vispy_layer(layer)
 
-            # In the other direction, some visuals need to tell QtPoll to
-            # start polling. When they receive new data they need to be
-            # polled to load it, even if the camera is not moving.
-            if vispy_layer.events is not None:
-                vispy_layer.events.loaded.connect(self._qt_poll.wake_up)
+            # QtPoll is experimental.
+            if self._qt_poll is not None:
+                # QtPoll will call VipyBaseImage._on_poll() when the camera
+                # moves or the timer goes off.
+                self._qt_poll.events.poll.connect(vispy_layer._on_poll)
 
-        self.canvas.add_layer_visual_mapping(layer, vispy_layer)
+                # In the other direction, some visuals need to tell QtPoll to
+                # start polling. When they receive new data they need to be
+                # polled to load it, even if the camera is not moving.
+                if vispy_layer.events is not None:
+                    vispy_layer.events.loaded.connect(self._qt_poll.wake_up)
+
+            self.canvas.add_layer_visual_mapping(layer, vispy_layer)
+
+            if layer.is_group():
+                for child in layer:
+                    add_children(child)
+
+        add_children(layer)
 
     def _save_layers_dialog(self, selected=False):
         """Save layers (all or selected) to disk, using ``LayerList.save()``.

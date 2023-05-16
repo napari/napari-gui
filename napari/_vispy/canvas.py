@@ -573,30 +573,45 @@ class VispyCanvas:
         -------
         None
         """
+
+        def remove_children(layer):
+            layer.events.visible.disconnect(self._reorder_layers)
+
+            if layer.is_group():
+                for child in layer:
+                    remove_children(child)
+
+            vispy_layer = self.layer_to_visual[layer]
+            vispy_layer.close()
+            del vispy_layer
+            del self.layer_to_visual[layer]
+
         layer = event.value
-        layer.events.visible.disconnect(self._reorder_layers)
-        vispy_layer = self.layer_to_visual[layer]
-        vispy_layer.close()
-        del vispy_layer
-        del self.layer_to_visual[layer]
+        remove_children(layer)
         self._reorder_layers()
 
     def _reorder_layers(self) -> None:
         """When the list is reordered, propagate changes to draw order."""
+
         first_visible_found = False
 
-        for i, layer in enumerate(self.viewer.layers):
-            vispy_layer = self.layer_to_visual[layer]
-            vispy_layer.order = i
+        def reorder_children(layer):
+            nonlocal first_visible_found
+            for i, child in enumerate(layer):
+                vispy_layer = self.layer_to_visual[child]
+                vispy_layer.order = i
+                if child.is_group():
+                    reorder_children(child)
+                else:
+                    # the bottommost visible layer needs special treatment for blending
+                    if layer.visible and not first_visible_found:
+                        vispy_layer.first_visible = True
+                        first_visible_found = True
+                    else:
+                        vispy_layer.first_visible = False
+                    vispy_layer._on_blending_change()
 
-            # the bottommost visible layer needs special treatment for blending
-            if layer.visible and not first_visible_found:
-                vispy_layer.first_visible = True
-                first_visible_found = True
-            else:
-                vispy_layer.first_visible = False
-            vispy_layer._on_blending_change()
-
+        reorder_children(self.viewer.layers)
         self._scene_canvas._draw_order.clear()
         self._scene_canvas.update()
 

@@ -6,6 +6,7 @@ import numpy as np
 from vispy.scene.widgets.viewbox import ViewBox
 
 from napari._vispy.layers.base import VispyBaseLayer
+from napari._vispy.layers.group import VispyLayerGroup
 from napari._vispy.layers.image import VispyImageLayer
 from napari._vispy.layers.labels import VispyLabelsLayer
 from napari._vispy.layers.points import VispyPointsLayer
@@ -43,6 +44,7 @@ from napari.layers import (
     Tracks,
     Vectors,
 )
+from napari.layers.layergroup import LayerGroup
 from napari.utils.config import async_octree
 from napari.utils.translations import trans
 
@@ -54,6 +56,7 @@ layer_to_visual = {
     Surface: VispySurfaceLayer,
     Vectors: VispyVectorsLayer,
     Tracks: VispyTracksLayer,
+    LayerGroup: VispyLayerGroup,
 }
 
 
