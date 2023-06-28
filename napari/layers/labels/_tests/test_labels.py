@@ -370,6 +370,51 @@ def test_multiscale_properties():
     assert layer_message['coordinates'].endswith('Class 12')
 
 
+def test_predefined_labels():
+    """Test predefined labels without names"""
+
+    predefined_labels = [10, 20, 30, 255]
+    labels = Labels(
+        np.zeros((10, 10), dtype=int), predefined_labels=predefined_labels
+    )
+    assert set(labels._predefined_labels) == set(
+        predefined_labels + [labels._background_label]
+    )
+    assert labels._predefined_labels[labels._background_label] == "background"
+    assert labels.get_label_name(labels._background_label) == "background"
+
+    for label in predefined_labels:
+        assert labels.get_label_name(label) is None
+
+    labels.selected_label = 5
+    assert labels.get_label_name(5) == "unspecified"
+
+    assert (set(labels._predefined_labels) - set(predefined_labels)) == {0, 5}
+
+
+def test_predefined_labels_with_names():
+    """Test predefined labels with names"""
+
+    predefined_labels = {10: 'ten', 20: 'twenty', 30: 'thirty'}
+    data = 10 * np.arange(5, dtype=np.int32)[:, np.newaxis].repeat(5, axis=1)
+    labels = Labels(data, predefined_labels=predefined_labels)
+
+    for label_value, label_name in predefined_labels.items():
+        assert labels.get_label_name(label_value) == label_name
+
+    assert labels.get_label_name(5) is None
+
+    layer_message = labels.get_status((0, 0))
+    assert layer_message['coordinates'].endswith(' background')
+
+    for i in range(1, 4):
+        layer_message = labels.get_status((i, 2))
+        assert layer_message['coordinates'].endswith(predefined_labels[i * 10])
+
+    layer_message = labels.get_status((4, 0))
+    assert layer_message['coordinates'].endswith('40')
+
+
 def test_colormap():
     """Test colormap."""
     np.random.seed(0)

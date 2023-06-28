@@ -6,6 +6,8 @@ import zarr
 
 from napari.layers import Labels
 from napari.layers.labels._labels_key_bindings import (
+    decrease_label_id,
+    increase_label_id,
     new_label,
     swap_selected_and_background_labels,
 )
@@ -33,6 +35,31 @@ def test_swap_background_label(labels_data_4d):
     assert labels.selected_label == labels._background_label
     swap_selected_and_background_labels(labels)
     assert labels.selected_label == 10
+
+
+def test_predefined_labels_switching(labels_data_4d):
+    predefined_labels = [21, 1, 20, 30, 40, 2, 10]
+    labels = Labels(labels_data_4d, predefined_labels=predefined_labels)
+    predefined_labels = sorted(predefined_labels)
+
+    labels.selected_label = 1
+    for label_id in predefined_labels[1:]:
+        increase_label_id(labels)
+        assert labels.selected_label == label_id
+
+    for _i in range(3):
+        increase_label_id(labels)
+        assert labels.selected_label == predefined_labels[-1]
+
+    for label_id in predefined_labels[::-1][1:]:
+        decrease_label_id(labels)
+        assert labels.selected_label == label_id
+
+    for _i in range(3):
+        decrease_label_id(labels)
+        assert labels.selected_label == min(
+            predefined_labels[0], labels._background_label
+        )
 
 
 def test_max_label_tensorstore(labels_data_4d):
