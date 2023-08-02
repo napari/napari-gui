@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING, Iterable, List, Tuple, Union
 
 import numpy as np
-from skimage.draw import line, polygon2mask
+from numpy.typing import NDArray
+from skimage.draw import line, polygon
 from vispy.geometry import PolygonData
 from vispy.visuals.tube import _frenet_frames
 
@@ -858,27 +859,31 @@ def generate_tube_meshes(path, closed=False, tube_points=10):
     return centers, offsets, triangles
 
 
-def path_to_mask(mask_shape, vertices):
+def path_to_indices(
+    target_shape: Union[NDArray, Tuple[int, ...]], vertices: NDArray
+) -> Tuple[NDArray]:
     """Converts a path to a boolean mask with `True` for points lying along
     each edge.
 
     Parameters
     ----------
-    mask_shape : array (2,)
-        Shape of mask to be generated.
+    target_shape : np.ndarray | tuple
+        Image shape which is used to determine the maximum extent of output
+        pixel coordinates. This is useful for polygons that exceed the image
+        size. If None, the full extent of the polygon is used. Must be at
+        least length 2. Only the first two values are used to determine the
+        extent of the input image.
     vertices : array (N, 2)
         Vertices of the path.
 
     Returns
     -------
-    mask : np.ndarray
-        Boolean array with `True` for points along the path
-
+    iis, jjs : ndarray of int
+        Pixel coordinates of polygon. May be used to directly index into an array, e.g. img[iis, jjs] = 1.
     """
-    mask_shape = np.asarray(mask_shape, dtype=int)
-    mask = np.zeros(mask_shape, dtype=bool)
+    shape = np.asarray(target_shape, dtype=int)
 
-    vertices = np.round(np.clip(vertices, 0, mask_shape - 1)).astype(int)
+    vertices = np.round(np.clip(vertices, 0, shape - 1)).astype(int)
 
     # remove identical, consecutive vertices
     duplicates = np.all(np.diff(vertices, axis=0) == 0, axis=-1)
@@ -891,29 +896,32 @@ def path_to_mask(mask_shape, vertices):
         iis.extend(ii.tolist())
         jjs.extend(jj.tolist())
 
-    mask[iis, jjs] = 1
-
-    return mask
+    return iis, jjs
 
 
-def poly_to_mask(mask_shape, vertices):
-    """Converts a polygon to a boolean mask with `True` for points
-    lying inside the shape. Uses the bounding box of the vertices to reduce
-    computation time.
+def poly_to_indices(
+    target_shape: Union[NDArray, Tuple[int, ...]], vertices: NDArray
+) -> Tuple[NDArray]:
+    """Converts a polygon to indices for points lying inside the shape.
+    Uses the bounding box of the vertices to reduce computation time.
 
     Parameters
     ----------
-    mask_shape : np.ndarray | tuple
-        1x2 array of shape of mask to be generated.
+    target_shape : np.ndarray | tuple
+        Image shape which is used to determine the maximum extent of output
+        pixel coordinates. This is useful for polygons that exceed the image
+        size. If None, the full extent of the polygon is used. Must be at
+        least length 2. Only the first two values are used to determine the
+        extent of the input image.
     vertices : np.ndarray
         Nx2 array of the vertices of the polygon.
 
     Returns
     -------
-    mask : np.ndarray
-        Boolean array with `True` for points inside the polygon
+    rr, cc : ndarray of int
+        Pixel coordinates of polygon. May be used to directly index into an array, e.g. img[rr, cc] = 1.
     """
-    return polygon2mask(mask_shape, vertices)
+    return polygon(vertices[:, -2], vertices[:, -1], shape=target_shape)
 
 
 def grid_points_in_poly(shape, vertices):
@@ -1219,3 +1227,33 @@ def rdp(vertices: npt.NDArray, epsilon: float) -> npt.NDArray:
 
     # When epsilon is 0, avoid removing datapoints
     return vertices
+
+
+def get_constant_and_variable_subiterables(
+    iterable: Iterable,
+) -> Tuple[List[int], List[int]]:
+    """Returns the indices of constant and variable subiterables.
+
+    Check if the elements of the subiterables are constant (all
+    identical) or variabel. Returns the indices as tuple;
+    list of constant subiterable indices first.
+
+    Parameters
+    ----------
+    iterable : Iterable
+        Iterable containing subiterables.
+
+    Returns
+    ------
+    tuple[list[int], List[int]]
+        Tuple of size two containing list with the indices of all
+        constant respectifly variable subiterables.
+    """
+    variable_dims = []
+    constant_dims = []
+    for idx, dim in enumerate(iterable):
+        if len(set(dim)) > 1:
+            variable_dims += [idx]
+        else:
+            constant_dims += [idx]
+    return constant_dims, variable_dims

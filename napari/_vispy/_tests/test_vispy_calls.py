@@ -86,6 +86,9 @@ def test_data_change_ndisplay_shapes(make_napari_viewer):
 
     np.random.seed(0)
     data = 20 * np.random.random((10, 4, 3))
+    # no real 3D shapes -> 2D shapes in 3D space
+    for idx, arr in enumerate(data):
+        arr[:, 0] = idx
     layer = viewer.add_shapes(data)
 
     visual = viewer.window._qt_viewer.canvas.layer_to_visual[layer]
