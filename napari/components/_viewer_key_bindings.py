@@ -155,3 +155,10 @@ def hold_for_pan_zoom(viewer: ViewerModel):
         yield
 
         selected_layer.mode = previous_mode
+
+
+@register_viewer_action(trans._("Toggle measurement mode"))
+def toggle_measure(viewer: ViewerModel):
+    viewer._overlays['measure'].visible = not viewer._overlays[
+        'measure'
+    ].visible

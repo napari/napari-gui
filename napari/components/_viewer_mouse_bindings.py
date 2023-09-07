@@ -13,3 +13,7 @@ def dims_scroll(viewer, event):
         else:
             viewer.dims._increment_dims_right()
             viewer.dims._scroll_progress -= 1
+
+
+def update_measure(viewer, event):
+    print(event.position)

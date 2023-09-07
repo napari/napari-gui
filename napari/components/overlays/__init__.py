@@ -11,6 +11,7 @@ from napari.components.overlays.interaction_box import (
     TransformBoxOverlay,
 )
 from napari.components.overlays.labels_polygon import LabelsPolygonOverlay
+from napari.components.overlays.measure import MeasureOverlay
 from napari.components.overlays.scale_bar import ScaleBarOverlay
 from napari.components.overlays.text import TextOverlay
 
@@ -26,4 +27,5 @@ __all__ = [
     "SceneOverlay",
     "TextOverlay",
     "BrushCircleOverlay",
+    "MeasureOverlay",
 ]
