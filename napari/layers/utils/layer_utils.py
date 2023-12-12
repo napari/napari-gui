@@ -16,7 +16,6 @@ from typing import (
     Union,
 )
 
-import dask
 import numpy as np
 import pandas as pd
 
@@ -230,48 +229,66 @@ def calc_data_range(data, rgb=False) -> Tuple[float, float]:
 
     center: Union[int, List[int]]
 
-    if data.size > 1e7 and (data.ndim == 1 or (rgb and data.ndim == 2)):
-        # If data is very large take the average of start, middle and end.
-        center = int(data.shape[0] // 2)
-        slices = [
-            slice(0, 4096),
-            slice(center - 2048, center + 2048),
-            slice(-4096, None),
-        ]
-        reduced_data = [
-            [_nanmax(data[sl]) for sl in slices],
-            [_nanmin(data[sl]) for sl in slices],
-        ]
-    elif data.size > 1e7:
-        # If data is very large take the average of the top, bottom, and
-        # middle slices
-        offset = 2 + int(rgb)
-        bottom_plane_idx = (0,) * (data.ndim - offset)
-        middle_plane_idx = tuple(s // 2 for s in data.shape[:-offset])
-        top_plane_idx = tuple(s - 1 for s in data.shape[:-offset])
-        idxs = [bottom_plane_idx, middle_plane_idx, top_plane_idx]
-        # If each plane is also very large, look only at a subset of the image
-        if (
-            np.prod(data.shape[-offset:]) > 1e7
-            and data.shape[-offset] > 64
-            and data.shape[-offset + 1] > 64
-        ):
-            # Find a central patch of the image to take
-            center = [int(s // 2) for s in data.shape[-offset:]]
-            central_slice = tuple(slice(c - 31, c + 31) for c in center[:2])
-            reduced_data = [
-                [_nanmax(data[idx + central_slice]) for idx in idxs],
-                [_nanmin(data[idx + central_slice]) for idx in idxs],
-            ]
-        else:
-            reduced_data = [
-                [_nanmax(data[idx]) for idx in idxs],
-                [_nanmin(data[idx]) for idx in idxs],
-            ]
-        # compute everything in one go
-        reduced_data = dask.compute(*reduced_data)
-    else:
-        reduced_data = data
+    # if data.size > 1e7 and (data.ndim == 1 or (rgb and data.ndim == 2)):
+    #     # If data is very large take the average of start, middle and end.
+    #     center = int(data.shape[0] // 2)
+    #     slices = [
+    #         slice(0, 4096),
+    #         slice(center - 2048, center + 2048),
+    #         slice(-4096, None),
+    #     ]
+    #     reduced_data = [
+    #         [_nanmax(data[sl]) for sl in slices],
+    #         [_nanmin(data[sl]) for sl in slices],
+    #     ]
+    # elif data.size > 1e7:
+    #     # If data is very large take the average of the top, bottom, and
+    #     # middle slices
+    #     offset = 2 + int(rgb)
+    #     bottom_plane_idx = (0,) * (data.ndim - offset)
+    #     middle_plane_idx = tuple(s // 2 for s in data.shape[:-offset])
+    #     top_plane_idx = tuple(s - 1 for s in data.shape[:-offset])
+    #     idxs = [bottom_plane_idx, middle_plane_idx, top_plane_idx]
+    #     # If each plane is also very large, look only at a subset of the image
+    #     if (
+    #         np.prod(data.shape[-offset:]) > 1e7
+    #         and data.shape[-offset] > 64
+    #         and data.shape[-offset + 1] > 64
+    #     ):
+    #         # Find a central patch of the image to take
+    #         center = [int(s // 2) for s in data.shape[-offset:]]
+    #         central_slice = tuple(slice(c - 31, c + 31) for c in center[:2])
+    #         reduced_data = [
+    #             [_nanmax(data[idx + central_slice]) for idx in idxs],
+    #             [_nanmin(data[idx + central_slice]) for idx in idxs],
+    #         ]
+    #     else:
+    #         reduced_data = [
+    #             [_nanmax(data[idx]) for idx in idxs],
+    #             [_nanmin(data[idx]) for idx in idxs],
+    #         ]
+    #     # compute everything in one go
+    #     reduced_data = dask.compute(*reduced_data)
+    # else:
+    #     reduced_data = data
+
+    num_elements = np.prod(data.shape)
+
+    target_number_elements = 20_000
+
+    # Calculate the number of elements to be sampled, should be based on
+    num_sampled_elements = min(num_elements, target_number_elements)
+
+    # Generate random indices to sample from the array
+    indices = np.random.choice(
+        num_elements, size=num_sampled_elements, replace=False
+    )
+
+    # Convert the 1D indices array to nD indices
+    indices = np.unravel_index(indices, data.shape)
+
+    # Use the indices to extract the subset from the input array
+    reduced_data = data[indices]
 
     min_val = _nanmin(reduced_data)
     max_val = _nanmax(reduced_data)

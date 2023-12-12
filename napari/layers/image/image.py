@@ -378,7 +378,10 @@ class _ImageBase(IntensityVisualizationMixin, Layer):
                     self.contrast_limits_range = (0, 1)
                 self._should_calc_clims = dtype != np.uint8
             else:
-                self.contrast_limits_range = self._calc_data_range()
+                # Delay contrast limit calculation
+                self.contrast_limits_range = (0, 1)
+                self._should_calc_clims = True
+                # self.contrast_limits_range = self._calc_data_range()
         else:
             self.contrast_limits_range = contrast_limits
         self._contrast_limits: Tuple[float, float] = self.contrast_limits_range
