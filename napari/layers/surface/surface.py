@@ -260,9 +260,12 @@ class Surface(IntensityVisualizationMixin, Layer):
         # Set contrast_limits and colormaps
         self._gamma = gamma
         if contrast_limits is not None:
-            self._contrast_limits_range = contrast_limits
+            self.contrast_limits_range = contrast_limits
         else:
-            self._contrast_limits_range = calc_data_range(self._vertex_values)
+            if contrast_limits_range := calc_data_range(self._vertex_values):
+                self.contrast_limits_range = contrast_limits_range
+            else:
+                self.contrast_limits_range = (0, 1)
 
         self._contrast_limits = self._contrast_limits_range
         self.colormap = colormap

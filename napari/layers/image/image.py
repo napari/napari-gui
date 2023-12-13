@@ -28,10 +28,12 @@ from napari.layers.image._image_utils import guess_multiscale, guess_rgb
 from napari.layers.image._slice import _ImageSliceRequest, _ImageSliceResponse
 from napari.layers.intensity_mixin import IntensityVisualizationMixin
 from napari.layers.utils._slice_input import _SliceInput, _ThickNDSlice
-from napari.layers.utils.layer_utils import calc_data_range
+from napari.layers.utils.layer_utils import (
+    _get_chunk_size,
+    calc_data_range,
+)
 from napari.layers.utils.plane import SlicingPlane
 from napari.utils._dask_utils import DaskIndexer
-from napari.utils._dtype import get_dtype_limits, normalize_dtype
 from napari.utils.colormaps import AVAILABLE_COLORMAPS
 from napari.utils.events import Event
 from napari.utils.events.event import WarningEmitter
@@ -338,6 +340,7 @@ class _ImageBase(IntensityVisualizationMixin, Layer):
 
         # Set data
         self._data = data
+        self._chunk_size = _get_chunk_size(data)
         if isinstance(data, MultiScaleData):
             self._data_level = len(data) - 1
             # Determine which level of the multiscale to use for the thumbnail.
@@ -370,15 +373,12 @@ class _ImageBase(IntensityVisualizationMixin, Layer):
         # Whether to calculate clims on the next set_view_slice
         self._should_calc_clims = False
         if contrast_limits is None:
-            if not isinstance(data, np.ndarray):
-                dtype = normalize_dtype(getattr(data, 'dtype', None))
-                if np.issubdtype(dtype, np.integer):
-                    self.contrast_limits_range = get_dtype_limits(dtype)
-                else:
-                    self.contrast_limits_range = (0, 1)
-                self._should_calc_clims = dtype != np.uint8
+            if contrast_limits_range := self._calc_data_range():
+                self.contrast_limits_range = contrast_limits_range
             else:
-                self.contrast_limits_range = self._calc_data_range()
+                # Required when chunk size product goes over the size threshold so we wait until data is in memory.
+                self.contrast_limits_range = (0, 1)
+                self._should_calc_clims = True
         else:
             self.contrast_limits_range = contrast_limits
         self._contrast_limits: Tuple[float, float] = self.contrast_limits_range
@@ -413,7 +413,7 @@ class _ImageBase(IntensityVisualizationMixin, Layer):
         """Viewable image for the current slice. (compatibility)"""
         return self._slice.image.view
 
-    def _calc_data_range(self, mode='data') -> Tuple[float, float]:
+    def _calc_data_range(self, mode='data') -> None | tuple[float, float]:
         """
         Calculate the range of the data values in the currently viewed slice
         or full data array

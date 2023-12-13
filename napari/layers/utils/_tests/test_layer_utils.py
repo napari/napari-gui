@@ -7,6 +7,10 @@ from dask import array as da
 
 from napari.layers.utils.layer_utils import (
     _FeatureTable,
+    _get_1d_slices,
+    _get_chunk_size,
+    _get_crop_slices,
+    _get_plane_indices,
     calc_data_range,
     coerce_current_properties,
     dataframe_to_properties,
@@ -17,19 +21,55 @@ from napari.layers.utils.layer_utils import (
 )
 from napari.utils.key_bindings import KeymapHandler, KeymapProvider
 
-data_dask = da.random.random(
-    size=(100_000, 1000, 1000), chunks=(1, 1000, 1000)
+data_dask = da.random.randint(
+    15000,
+    25000,
+    size=(100_000, 1000, 1000),
+    chunks=(1, 1000, 1000),
+    dtype=np.uint16,
 )
 data_dask_8b = da.random.randint(
     0, 100, size=(1_000, 10, 10), chunks=(1, 10, 10), dtype=np.uint8
 )
-data_dask_1d = da.random.random(size=(20_000_000,), chunks=(5000,))
-
-data_dask_1d_rgb = da.random.random(size=(5_000_000, 3), chunks=(50_000, 3))
-
-data_dask_plane = da.random.random(
-    size=(100_000, 100_000), chunks=(1000, 1000)
+data_dask_1d = da.random.randint(
+    25000, 30000, size=(20_000_000,), chunks=(5000,), dtype=np.uint16
 )
+
+data_dask_1d_rgb = da.random.randint(
+    0, 255, size=(5_000_000, 3), chunks=(50_000, 3), dtype=np.uint8
+)
+
+data_dask_plane = da.random.randint(
+    250, 15000, size=(100_000, 100_000), chunks=(1000, 1000), dtype=np.uint16
+)
+
+TEST_DATA_1D = [
+    ((5,), (int(15e6),)),  # Case of chunk going over pixel threshold
+    ((5,), (int(9e6),)),  # Only stay below threshold with 1 chunk
+    (
+        (4000,),
+        (5000,),
+    ),  # Chunk shape and size sufficient to get all slices
+    ((2,), (int(9e6),)),
+    ((int(20e6),), None),
+]
+
+INSUFFICIENT_CHUNKS = [
+    ((9, 12, 12), (1, 3000, 3000), 1),  # Test less than 1 chunk per plane
+    (
+        (9, 12, 12),
+        (1, 745, 745),
+        15,
+    ),  # In this case there should be 5 chunks allowed per plane
+    ((9, 12, 12), (1, 1054, 1054), 9),  # 3 crops per plane allowed
+    ((9, 12, 12), (1, 1290, 1290), 3),  # 1 crop per plane allowed
+    (
+        (9, 1, 3),
+        (1, 1825, 1825),
+        3,
+    ),  #  Shape only allows for 3 slices per plane
+    ((3, 15, 15, 8), (1, 11, 311, 621), 3),  #  test 4 dimensional data
+]
 
 
 def test_calc_data_range():
@@ -44,9 +84,9 @@ def test_calc_data_range():
     np.testing.assert_array_equal(clim, (0, 1))
 
     # return min and max
-    data = np.random.random((10, 15))
-    data[0, 0] = 0
-    data[0, 1] = 2
+    data = np.random.random((1_000_000, 11))
+    data[5_000_00, 5] = 0
+    data[5_000_01, 5] = 2
     clim = calc_data_range(data)
     np.testing.assert_array_equal(clim, (0, 2))
 
@@ -77,8 +117,9 @@ def test_calc_data_range():
     [data_dask_8b, data_dask, data_dask_1d, data_dask_1d_rgb, data_dask_plane],
 )
 def test_calc_data_range_fast(data):
+    rgb = data.shape[-1] == 3
     now = time.monotonic()
-    val = calc_data_range(data)
+    val = calc_data_range(data, rgb)
     assert len(val) > 0
     elapsed = time.monotonic() - now
     assert elapsed < 5, "test took too long, computation was likely not lazy"
@@ -488,3 +529,70 @@ def test_register_label_attr_action(monkeypatch):
     monkeypatch.setattr(time, "time", lambda: 2)
     handler.release_key("K")
     assert foo.value == 0
+
+
+@pytest.mark.parametrize(["shape", "chunk_size"], TEST_DATA_1D)
+def test_1d_slices(shape, chunk_size):
+    slices = _get_1d_slices(shape, chunk_size)
+    assert len(slices) == 1
+
+
+@pytest.mark.parametrize(
+    ["shape", "chunk_size", "expected_length"], INSUFFICIENT_CHUNKS
+)
+def test_insufficient_chunks_get_crop_slices(
+    shape, chunk_size, expected_length
+):
+    offset = 2
+
+    idxs = _get_plane_indices(shape, offset)
+    slices = _get_crop_slices(shape, idxs, offset, chunk_size)
+    assert len(slices) == expected_length
+    assert len(shape) == len(slices[0])
+
+
+def test_zarr_get_chunk_size():
+    import zarr
+
+    data_shape = (100, 100)
+    chunk_shape = (10, 10)
+
+    data = zarr.zeros(data_shape, chunks=chunk_shape, dtype='u2')
+    chunk_size = _get_chunk_size(data)
+    assert np.array_equal(chunk_size, chunk_shape)
+
+
+def test_xarray_get_chunk_size():
+    import xarray as xr
+
+    data_shape = (100, 100)
+    chunk_shape = (10, 10)
+
+    coords = list(range(100))
+    data = xr.DataArray(
+        np.zeros(data_shape),
+        dims=['y', 'x'],
+        coords={'y': coords, 'x': coords},
+    )
+    data = data.chunk(chunk_shape)
+    chunk_size = _get_chunk_size(data)
+    assert np.array_equal(chunk_size, chunk_shape)
+
+
+def test_dask_get_chunk_size():
+    chunk_size = _get_chunk_size(data_dask_plane)
+    assert np.array_equal(chunk_size, (1000, 1000))
+
+
+def test_rgb_dtypes():
+    data = np.random.randint(0, 4, (10, 10, 3), np.uint8)
+    clim = calc_data_range(data, rgb=True)
+    assert np.array_equal(clim, (0, 255))
+
+    data = data.astype(np.uint16)
+    clim = calc_data_range(data, rgb=True)
+    assert np.array_equal(clim, (0, 65535))
+
+    data = data.astype(float)
+    clim = calc_data_range(data, rgb=True)
+    assert np.array_equal(clim, (data.min(), data.max()))

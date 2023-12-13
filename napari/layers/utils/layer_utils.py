@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import functools
 import inspect
+import sys
 import warnings
+from itertools import product
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
     Dict,
+    Iterable,
     List,
     NamedTuple,
     Optional,
@@ -20,6 +23,7 @@ import dask
 import numpy as np
 import pandas as pd
 
+from napari.utils._dtype import get_dtype_limits, normalize_dtype
 from napari.utils.action_manager import action_manager
 from napari.utils.events.custom_types import Array
 from napari.utils.transforms import Affine
@@ -29,6 +33,14 @@ if TYPE_CHECKING:
     from typing import Mapping
 
     import numpy.typing as npt
+    from xarray import DataArray
+
+    from napari.layers._multiscale_data import MultiScaleData
+
+PIXEL_THRESHOLD = int(1e7)
+# We allow for a maximum of 10 million pixels to be used for the contrast limit calculation
+MAX_NUMBER_OF_CHUNKS = 20
+# We keep the number of chunks relatively low in order to keep the calculation fast when lazy.
 
 
 class Extent(NamedTuple):
@@ -183,6 +195,9 @@ def _nanmin(array):
     """
     call np.min but fall back to avoid nan and inf if necessary
     """
+    if isinstance(array, tuple):
+        return min(_nanmin(sub_array) for sub_array in array)
+
     min_value = np.min(array)
     if not np.isfinite(min_value):
         masked = array[np.isfinite(array)]
@@ -196,6 +211,9 @@ def _nanmax(array):
     """
     call np.max but fall back to avoid nan and inf if necessary
     """
+    if isinstance(array, tuple):
+        return max(_nanmax(sub_array) for sub_array in array)
+
     max_value = np.max(array)
     if not np.isfinite(max_value):
         masked = array[np.isfinite(array)]
@@ -205,73 +223,65 @@ def _nanmax(array):
     return max_value
 
 
-def calc_data_range(data, rgb=False) -> Tuple[float, float]:
-    """Calculate range of data values. If all values are equal return [0, 1].
+def calc_data_range(data, rgb: bool = False) -> None | tuple[float, float]:
+    """Calculate range of data values. If all values are equal return [0, 1]. It always returns (0, 255) for uint8 data.
 
     Parameters
     ----------
     data : array
         Data to calculate range of values over.
     rgb : bool
-        Flag if data is rgb.
+        Flag if data is rgb. If so and data is integer then it returns dtype limits.
 
     Returns
     -------
-    values : pair of floats
-        Minimum and maximum values in that order.
+    values : None | tuple[float, float]
+        Minimum and maximum values in that order or None if data are chunked and chunk is bigger than napari.utils.layer_utils.PIXEL_THRESHOLD or the data are stored in tensorstore.
 
     Notes
     -----
-    If the data type is uint8, no calculation is performed, and 0-255 is
+    If the data type is uint8 or rgb, no calculation is performed, and dtype range is
     returned.
     """
-    if data.dtype == np.uint8:
-        return (0, 255)
+    dtype = normalize_dtype(getattr(data, 'dtype', None))
 
-    center: Union[int, List[int]]
+    if dtype == np.uint8 or (rgb and np.issubdtype(dtype, np.integer)):
+        return get_dtype_limits(dtype)
 
-    if data.size > 1e7 and (data.ndim == 1 or (rgb and data.ndim == 2)):
-        # If data is very large take the average of start, middle and end.
-        center = int(data.shape[0] // 2)
-        slices = [
-            slice(0, 4096),
-            slice(center - 2048, center + 2048),
-            slice(-4096, None),
-        ]
+    shape = data.shape
+    chunk_size = _get_chunk_size(data)
+
+    # Iterable check is for TensorStore as this is required for the calculation, but TensorStore is not.
+    if (
+        chunk_size and np.prod(chunk_size) > PIXEL_THRESHOLD
+    ) or data.__class__.__name__ == "TensorStore":
+        return None
+
+    if chunk_size:
+        shape = _get_blocks_grid_shape(data.shape, chunk_size)
+
+    if data.size > PIXEL_THRESHOLD and (data.ndim == 1):
+        slices_1D = _get_1d_slices(shape, chunk_size)
         reduced_data = [
-            [_nanmax(data[sl]) for sl in slices],
-            [_nanmin(data[sl]) for sl in slices],
+            [_nanmax(data[sl]) for sl in slices_1D],
+            [_nanmin(data[sl]) for sl in slices_1D],
         ]
-    elif data.size > 1e7:
-        # If data is very large take the average of the top, bottom, and
-        # middle slices
+    elif data.size > PIXEL_THRESHOLD:
+        # If data is very large take the top, bottom, and middle slices
         offset = 2 + int(rgb)
-        bottom_plane_idx = (0,) * (data.ndim - offset)
-        middle_plane_idx = tuple(s // 2 for s in data.shape[:-offset])
-        top_plane_idx = tuple(s - 1 for s in data.shape[:-offset])
-        idxs = [bottom_plane_idx, middle_plane_idx, top_plane_idx]
-        # If each plane is also very large, look only at a subset of the image
-        if (
-            np.prod(data.shape[-offset:]) > 1e7
-            and data.shape[-offset] > 64
-            and data.shape[-offset + 1] > 64
-        ):
-            # Find a central patch of the image to take
-            center = [int(s // 2) for s in data.shape[-offset:]]
-            central_slice = tuple(slice(c - 31, c + 31) for c in center[:2])
-            reduced_data = [
-                [_nanmax(data[idx + central_slice]) for idx in idxs],
-                [_nanmin(data[idx + central_slice]) for idx in idxs],
-            ]
-        else:
-            reduced_data = [
-                [_nanmax(data[idx]) for idx in idxs],
-                [_nanmin(data[idx]) for idx in idxs],
-            ]
-        # compute everything in one go
-        reduced_data = dask.compute(*reduced_data)
+        # Indices are either numpy array or chunk indices dependent on data structure of data and are 0 < length <= 3
+        idxs = _get_plane_indices(shape, offset)
+        slices_2D = _get_crop_slices(shape, idxs, offset, chunk_size)
+
+        reduced_data = [
+            [_nanmax(data[sl]) for sl in slices_2D],
+            [_nanmin(data[sl]) for sl in slices_2D],
+        ]
     else:
         reduced_data = data
+
+    if chunk_size:
+        reduced_data = dask.compute(*reduced_data)
 
     min_val = _nanmin(reduced_data)
     max_val = _nanmax(reduced_data)
@@ -279,7 +289,404 @@ def calc_data_range(data, rgb=False) -> Tuple[float, float]:
     if min_val == max_val:
         min_val = 0
         max_val = 1
-    return (float(min_val), float(max_val))
+    return float(min_val), float(max_val)
+
+
+def _get_1d_slices(shape, chunk_size) -> list[slice]:
+    """
+    Calculate data range in case of 1D data.
+
+    Parameters
+    ----------
+    shape: Sequence[int]
+        Shape of the data either in pixels or chunks.
+    chunk_size: Sequence[int]
+        The size in pixels per dimension of the chunks if data is lazy.
+
+    Returns
+    -------
+    slices: list[slice]
+        Slices to be taken from data for calculating contrast limits.
+    """
+    # If data is very large we only aim to take data around the center.
+    center = shape[0] // 2 * chunk_size[0] if chunk_size else shape[0] // 2
+
+    if not chunk_size:
+        return [
+            slice(
+                center - int(PIXEL_THRESHOLD // 2),
+                center + int(PIXEL_THRESHOLD // 2),
+            )
+        ]
+
+    chunk_size_product = np.prod(chunk_size)
+    allowed_chunks = int(PIXEL_THRESHOLD // chunk_size_product)
+    multiplier = min(allowed_chunks, MAX_NUMBER_OF_CHUNKS) // 2
+
+    return [
+        slice(
+            center - chunk_size[0] * multiplier,
+            center + chunk_size[0] * multiplier,
+        )
+    ]
+
+
+def _get_blocks_grid_shape(
+    data_shape: Sequence[int], chunk_size: Sequence[int]
+) -> Tuple[int, ...]:
+    """
+    Get the block shape: the approximate layout of the grid of array chunks.
+
+    Gets the shape of the array not on the pixel level but on the chunk level. For example if x is 100 and
+    chunk size is 10, 10 chunks fit in 100 and will thus be returned. In case of x being 105, still 10 will be
+    returned. This to ensure that only whole chunks will be loaded.
+
+    Parameters
+    ----------
+    data_shape: Sequence[int, ...]
+        The shape of an array of chunked data.
+    chunk_size: Sequence[int, ...]
+        The size per dimension of the chunks in the chunked data array.
+
+    Returns
+    -------
+    tuple[int, ...]
+        shape indicating the number of chunks per dimension.
+    """
+    return tuple(shape // size for shape, size in zip(data_shape, chunk_size))
+
+
+def _get_plane_indices(
+    shape: Sequence[int], offset: int
+) -> list[tuple[int, ...]]:
+    """
+    Get the indices that correspond to the lowest, middle and highest index of the non-visible dimensions in shape.
+
+    In case the different planes are the same, duplicates are removed.
+
+    Parameters
+    ----------
+    shape: Sequence[int]
+        Either the shape of the raw data (in pixels) or the block shape of the data (chunks)
+    offset: int
+        Number of visible dimensions
+
+    Returns
+    -------
+    idxs: list[tuple[int, ...]]
+        Bottom, middle and top plane (in pixels or chunks) for each non-visible dimension or single plane
+    """
+    bottom_plane_idx = tuple(int(s * 0.25) for s in shape[:-offset])
+    middle_plane_idx = tuple(s // 2 for s in shape[:-offset])
+    top_plane_idx = tuple(int(s * 0.75) for s in shape[:-offset])
+    idxs = [bottom_plane_idx, middle_plane_idx, top_plane_idx]
+    return list(set(idxs))
+
+
+def _calculate_chunk_parameters(
+    plane_indices: Sequence[Sequence[int]],
+    offset: int,
+    chunk_shape: None | tuple[int, ...] = None,
+) -> tuple[int, int, int, int]:
+    """
+    Calculate the chunk parameters for the contrast limit calculation.
+
+    As a default when dealing for numpy arrays we allow for 9 crops / chunks per plane taken at the first, second and
+    third quantile of the y and x dimension. Based on this the default value of the maximum number of crops / slices is
+    n plane_indices * 9. The size per slice, chunk_size_x and chunk_size_y, is initially based on these values too.
+    In case of dealing with chunked array data, chunk_shape is not None and these values get overwritten with the
+    numbers that we allow which are based on the PIXEL_THRESHOLD, the size of the chunks and the number of planes.
+
+    Parameters
+    ----------
+    plane_indices: Sequence[Sequence[int]]
+        Bottom, middle and top plane or single plane index for each non-visible dimension.
+    offset: int
+        Number of visible dimensions.
+    chunk_shape: None | tuple[int, ...]
+        The size per dimension of the chunks.
+
+    Returns
+    -------
+    max_chunks_per_plane: int
+        The maximum number of crops per plane in case of dealing with numpy array defaulting to 9, otherwise the
+        maximum number of chunks per plane.
+    max_allowed_chunks: None | int
+        The total number of chunks that is allowed based on the chunk size and the PIXEL_TRESHOLD. None if the
+        chunk size is higher than the PIXEL_THRESHOLD.
+    chunk_size_y: int
+        Size of the slice of the y dimension if dealing with numpy array, otherwise the y dim size of the chunk when
+        dealing with chunked array data.
+    chunk_size_x: int
+        Size of the slice of the x dimension if dealing with numpy array, otherwise the x dim size of the chunk when
+        dealing with chunked array data.
+    """
+    # defaults in case we are dealing with numpy array in which case chunks are crops and chunk size is just size of the
+    # slice. If chunked array these can be overwritten.
+    max_chunks_per_plane = 9
+    max_allowed_chunks = len(plane_indices) * max_chunks_per_plane
+    chunk_size_y = chunk_size_x = int(
+        (PIXEL_THRESHOLD // max_allowed_chunks) ** 0.5
+    )
+    if chunk_shape:
+        chunk_size_product = int(np.prod(chunk_shape))
+        chunk_plane_size = chunk_shape[-offset:]
+        chunk_size_y, chunk_size_x = chunk_plane_size[0], chunk_plane_size[1]
+        max_allowed_chunks = PIXEL_THRESHOLD // chunk_size_product
+        # in case of the chunk size going over the pixel threshold, we can wait until data is in memory.
+        if max_allowed_chunks and len(plane_indices) != 0:
+            max_chunks_per_plane = max_allowed_chunks // len(plane_indices)
+
+    return max_chunks_per_plane, max_allowed_chunks, chunk_size_y, chunk_size_x
+
+
+def _get_pixel_start_indices(
+    plane_indices: Sequence[Sequence[int]],
+    plane_shape,
+    offset: int,
+    chunk_size_y: int,
+    chunk_size_x: int,
+    chunk_shape: None | tuple[int, ...] = None,
+) -> Tuple[Sequence[Sequence[int]], list[int], list[int]]:
+    """
+    Get the start indices of the individual planes and the y and x dimension in pixel space.
+
+    In case of chunked array data, the plane_indices are converted to "voxel space". For y and x start indices, if
+    dealing with chunked array data the index refers to the actual chunk and not pixel. In case of dealing with
+    numpy array it refers to the starting pixels for each slice.
+
+    Parameters
+    ----------
+    plane_indices: Sequence[Sequence[int]]
+        Bottom, middle and top plane or single plane index for each non-visible dimension.
+    plane_shape
+    offset: int
+        Number of visible dimensions.
+    chunk_shape: None | tuple[int]
+        The size per dimension of the chunks.
+    chunk_size_y: int
+        Size of the slice of the y dimension if dealing with numpy array, otherwise the y dim size of the chunk when
+        dealing with chunked array data.
+    chunk_size_x: int
+        Size of the slice of the x dimension if dealing with numpy array, otherwise the x dim size of the chunk when
+        dealing with chunked array data.
+
+    Returns
+    -------
+    plane_indices: Sequence[Sequence[int]]
+        Bottom, middle and top plane or single plane index in "voxel" space for each non-visible dimension.
+    y_start_indices: list[int]
+        The y chunk start indices in array indices.
+    x_start_indices: list[int]
+        The x chunk start indices in array indices.
+    """
+    if chunk_shape:
+        plane_size = chunk_shape[:-offset]
+        # Go from chunk indices to pixel indices.
+        plane_indices = [
+            tuple(
+                plane[dim_index] * dim_size
+                for dim_index, dim_size in enumerate(plane_size)
+            )
+            for plane in plane_indices
+        ]
+
+        y_start_indices = _get_start_indices(plane_shape[0], chunk_size_y)
+        x_start_indices = _get_start_indices(plane_shape[1], chunk_size_x)
+    else:
+        y_start_indices = _get_start_indices(plane_shape[0])
+        x_start_indices = _get_start_indices(plane_shape[1])
+
+    return plane_indices, y_start_indices, x_start_indices
+
+
+def _get_crop_slices(
+    shape: Sequence[int],
+    plane_indices: Sequence[Sequence[int]],
+    offset: int,
+    chunk_shape: None | tuple[int, ...] = None,
+) -> Union[list[tuple[slice, slice]], list[tuple[Union[int, slice], ...]]]:
+    """
+    Get the crop slices to be used for determining contrast limits when data is larger than the pixel threshold.
+
+    Currently, we support a maximum of 9 crops per plane taken for both the y and x dimension as the first quantile,
+    second quantile and the third quantile. In case of having a numpy array this number is never changed, only the size
+    of the crops changes. In case of having chunked data, this number can be changed dependent on the PIXEL_THRESHOLD
+    and the chunk size. The overall behaviour if with 9 chunks we go over the PIXEL_THRESHOLD is that we first sacrifice
+    in the number of chunks per plane and only when this still causes to go over the PIXEL_TRESHOLD do we sacrifice on
+    also sampling planes. If we can support n fold 9 chunks we will extend the crops by n.
+
+    Regarding sampling strategy the 9 crops allowed are in the following pattern at first, second and third quantile
+    of both the y and x dimension:
+    ---------------
+    | |0| |1| |2| |
+    ---------------
+    | |3| |4| |5| |
+    ---------------
+    | |6| |7| |8| |
+    ---------------
+
+    Parameters
+    ----------
+    shape: Sequence[int]
+        Either the shape of the raw data (in pixels) or the block shape of the data (chunks)
+    plane_indices: Sequence[Sequence[int]]
+        Bottom, middle and top plane or single plane index for each non-visible dimension.
+    offset: int
+        Number of visible dimensions.
+    chunk_shape: None | tuple[int]
+        The size per dimension of the chunks.
+
+    Returns
+    -------
+    slices: Union[list[tuple[slice, slice]], list[tuple[Union[int, slice], ...]]]
+        A list of crop slices.
+    """
+    plane_shape = shape[-offset:]
+
+    (
+        max_chunks_per_plane,
+        max_allowed_chunks,
+        chunk_size_y,
+        chunk_size_x,
+    ) = _calculate_chunk_parameters(plane_indices, offset, chunk_shape)
+
+    plane_indices, y_start_indices, x_start_indices = _get_pixel_start_indices(
+        plane_indices,
+        plane_shape,
+        offset,
+        chunk_size_y,
+        chunk_size_x,
+        chunk_shape,
+    )
+
+    start_indices = list(
+        product(y_start_indices, x_start_indices)
+    )  # Nested loop
+
+    num_start_indices = len(start_indices)
+    chunk_multiplier = min(
+        max(max_chunks_per_plane // num_start_indices - 1, 0),
+        MAX_NUMBER_OF_CHUNKS,
+    )
+
+    # We have at least 1 chunk per plane, but not all chunks are allowed to be loaded. Only lazy data
+    indices: Tuple[int, ...]
+    if num_start_indices > max_chunks_per_plane >= 1:
+        if num_start_indices == 3:
+            # center chunk
+            indices = (1,)
+        # Below num_start_indices can only be 9
+        else:
+            if max_chunks_per_plane // 5 == 1:
+                # + pattern of chunks, check function doc string
+                indices = (1, 3, 4, 5, 7)
+            elif max_chunks_per_plane // 3 == 1:
+                # horizontal dashed line of chunks, check function doc string
+                indices = (3, 4, 5)
+            else:
+                # center chunk, check function doc string
+                indices = (4,)
+        start_indices = [start_indices[i] for i in indices]
+    elif max_chunks_per_plane < 1:
+        index = 1 if num_start_indices == 3 else 5
+        start_indices = [start_indices[index]]
+        # get the middle plane if 3 planes exist, otherwise first plane.
+        plane_indices = [plane_indices[max(1, len(plane_indices) - 1)]]
+
+    slices_y = _get_slices(
+        start_indices, len(y_start_indices), chunk_size_y, 0, chunk_multiplier
+    )
+    slices_x = _get_slices(
+        start_indices, len(x_start_indices), chunk_size_x, 1, chunk_multiplier
+    )
+    plane_slices: list[tuple[slice, slice]] = list(zip(slices_y, slices_x))
+    if len(plane_indices) == 0 or len(plane_indices[0]) == 0:
+        return plane_slices
+    return [
+        tuple(plane) + (plane_slice[0], plane_slice[1])
+        for plane in plane_indices
+        for plane_slice in plane_slices
+    ]
+
+
+def _get_slices(
+    start_indices: Iterable[Sequence[int]],
+    dim_indices_length: int,
+    chunk_dim_size: int,
+    dim_index: int,
+    multiplier: int,
+) -> list[slice]:
+    """
+    Get the crop slices for a given dimension.
+
+    Parameters
+    ----------
+    start_indices: Iterable[Sequence[int]]
+        Iterable in which each element contains the start indices of given dimensions.
+    dim_indices_length: int
+        The original length of the indices of one specific dimension.
+    chunk_dim_size: int
+        Size of the slice in a particular dimension. In case of lazy data it corresponds to the size of the dimension
+        of the chunks.
+    dim_index: int
+        The index of the dimension in the sequences in start indices for which to create the slices.
+    multiplier: int
+        In case of lazy data how many additional chunks to obtain.
+
+    Returns
+    -------
+    list[slice]
+        List of crop slices for a given dimension.
+    """
+    if dim_indices_length == 1:
+        return [
+            slice(start[dim_index], start[dim_index] + chunk_dim_size)
+            for start in start_indices
+        ]
+
+    return [
+        slice(
+            start[dim_index] - chunk_dim_size * multiplier,
+            start[dim_index] + chunk_dim_size * (multiplier + 1),
+        )
+        for start in start_indices
+    ]
+
+
+def _get_start_indices(
+    dim_size: int, chunk_dim_size: None | int = None
+) -> list[int]:
+    """
+    Get the crop start indices for extracting crops in a 3 x 3 pattern.
+
+    Gets the start indices required to extract crops in 3 x 3 pattern when appropriate. If this is not the
+    case, only returns one start index.
+
+    Parameters
+    ----------
+    dim_size: int
+        The number of chunks or pixels of a given dimension.
+    chunk_dim_size: None | int
+        The size of the individual chunks for one given dimension in case data is lazy.
+
+    Returns
+    -------
+    indices: list[int, ...]
+        The chunk start indices converted to array indices along a given dimension.
+    """
+    if not chunk_dim_size:
+        chunk_dim_size = 1
+    if dim_size <= 2:
+        indices = [0]
+    elif dim_size == 3:
+        indices = [0, chunk_dim_size, chunk_dim_size * 2]
+    else:
+        quarter_index = dim_size // 4 * chunk_dim_size
+        center_index = quarter_index * 2
+        qthree_index = quarter_index * 3
+        indices = [quarter_index, center_index, qthree_index]
+    return indices
 
 
 def segment_normal(a, b, p=(0, 0, 1)) -> np.ndarray:
@@ -1073,3 +1480,60 @@ def _unique_element(array: Array) -> Optional[Any]:
     if np.any(array[1:] != el):
         return None
     return el
+
+
+def _get_chunk_size(
+    data: MultiScaleData
+    | Iterable
+    | npt.NDArray
+    | float
+    | list
+    | Iterable[npt.NDArray]
+    | DataArray
+    | None,
+) -> None | tuple[int, ...]:
+    """Get chunk size from a given layer.
+
+    Parameters
+    ----------
+    data : napari.layers.Image
+        Layer to determine chunk size for.
+    Returns
+    -------
+    chunk_size : tuple or None
+        Chunk size for the layer.
+    """
+    if isinstance(data, np.ndarray):
+        return None
+
+    if "zarr" in sys.modules:
+        from zarr.core import Array as ZarrArray
+
+        if isinstance(data, ZarrArray):
+            return data.chunks
+
+    if "dask" in sys.modules:
+        from dask.array import Array as DaskArray
+
+        if isinstance(data, DaskArray):
+            return data.chunksize
+
+    if "tensorstore" in sys.modules:
+        from tensorstore import TensorStore
+
+        if isinstance(data, TensorStore):
+            # TensorStore allow to specify different read and write chunk sizes
+            # we use the read chunk size to have same chunk size for labels like
+            # when load data from drive
+            chunk_shape = data.chunk_layout.read_chunk.shape
+            # TensorStore can return tuple of Nones in case chunks haven't been specified.
+            if chunk_shape[0] is None:
+                return data.shape
+            return chunk_shape
+
+    if "xarray" in sys.modules:
+        from xarray import DataArray
+
+        if isinstance(data, DataArray):
+            return _get_chunk_size(data.data)
+    return None

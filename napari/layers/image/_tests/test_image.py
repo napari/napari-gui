@@ -142,7 +142,7 @@ def test_rgb_image():
     """Test instantiating Image layer with RGB data."""
     shape = (10, 15, 3)
     np.random.seed(0)
-    data = np.random.random(shape)
+    data = np.random.randint(0, 255, shape, np.uint8)
     layer = Image(data)
     assert np.array_equal(layer.data, data)
     assert layer.ndim == len(shape) - 1
@@ -157,7 +157,7 @@ def test_rgba_image():
     """Test instantiating Image layer with RGBA data."""
     shape = (10, 15, 4)
     np.random.seed(0)
-    data = np.random.random(shape)
+    data = np.random.randint(0, 255, shape, np.uint8)
     layer = Image(data)
     assert np.array_equal(layer.data, data)
     assert layer.ndim == len(shape) - 1
@@ -1000,3 +1000,20 @@ def test_thick_slice_multiscale():
     np.testing.assert_array_equal(
         layer._slice.image.raw, np.mean(data[2:5], axis=0)
     )
+
+
+def test_chunk_pixel_threshold_reset_contrast_lims(monkeypatch):
+    monkeypatch.setattr("napari.layers.utils.layer_utils.PIXEL_THRESHOLD", 100)
+    data = da.random.random((200, 200), chunks=(100, 100))
+    layer = Image(data)
+    layer.reset_contrast_limits()
+    assert layer.contrast_limits
+    layer.reset_contrast_limits_range()
+    assert layer.contrast_limits_range
+
+    with pytest.warns(UserWarning):
+        layer.reset_contrast_limits(mode='data')
+        assert layer.contrast_limits
+    with pytest.warns(UserWarning):
+        layer.reset_contrast_limits_range(mode='data')
+        assert layer.contrast_limits_range

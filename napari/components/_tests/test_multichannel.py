@@ -99,7 +99,7 @@ def test_multichannel(shape, kwargs):
     """Test adding multichannel image."""
     viewer = ViewerModel()
     np.random.seed(0)
-    data = np.random.random(shape or (15, 10, 5))
+    data = np.random.randint(0, 255, size=shape or (15, 10, 5), dtype=np.uint8)
     channel_axis = kwargs.pop('channel_axis', -1)
     viewer.add_image(data, channel_axis=channel_axis, **kwargs)
 
