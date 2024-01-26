@@ -32,6 +32,16 @@ def test_cli_shows_plugins(monkeypatch, capsys, tmp_plugin):
     assert tmp_plugin.name in str(capsys.readouterr())
 
 
+def test_cli_shows_plugins_widgets(monkeypatch, capsys, tmp_plugin):
+    """Test the cli --info runs and shows plugins"""
+    monkeypatch.setattr(sys, 'argv', ['napari', '--plugin-info'])
+    with pytest.raises(SystemExit):
+        __main__._run()
+    stdout = capsys.readouterr().out
+    assert tmp_plugin.name in stdout
+    assert "Display Name" in stdout
+
+
 def test_cli_parses_unknowns(mock_run, monkeypatch, make_napari_viewer):
     """test that we can parse layer keyword arg variants"""
     v = make_napari_viewer()  # our mock view_path will return this object

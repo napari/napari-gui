@@ -38,7 +38,7 @@ class PluginInfoAction(argparse.Action):
         from npe2 import cli
 
         cli.list(
-            fields="name,version,npe2,contributions",
+            fields="name,version,npe2,contributions,contributions.widgets.display_name",
             sort="name",
             format="table",
         )
