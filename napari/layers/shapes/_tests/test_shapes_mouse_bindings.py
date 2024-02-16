@@ -509,6 +509,7 @@ def test_rotate_shape(create_known_shapes_layer):
 def test_drag_vertex(create_known_shapes_layer):
     """Select and drag vertex."""
     layer, n_shapes, _ = create_known_shapes_layer
+    orig_data = layer.data.copy()
     layer.events.data = Mock()
     layer.mode = 'direct'
     layer.selected_data = {0}
@@ -541,14 +542,20 @@ def test_drag_vertex(create_known_shapes_layer):
     mouse_release_callbacks(layer, event)
 
     # Check clicked shape selected
-    vertex_indices = (tuple(range(len(layer.data[0]))),)
+    assert all(layer.data[0][0] == new_position)
     assert len(layer.selected_data) == 1
     assert layer.selected_data == {0}
+    assert layer.events.data.call_args_list[0][1] == {
+        "value": orig_data,
+        "action": ActionType.CHANGING,
+        "data_indices": (0,),
+        "vertex_indices": ((0,),),
+    }
     assert layer.events.data.call_args[1] == {
         "value": layer.data,
         "action": ActionType.CHANGED,
         "data_indices": (0,),
-        "vertex_indices": vertex_indices,
+        "vertex_indices": ((0,),),
     }
     np.testing.assert_allclose(layer.data[0][0], [0, 0])
 

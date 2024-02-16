@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from napari.layers.base._base_constants import ActionType
-from napari.layers.shapes._shapes_constants import Box, Mode
+from napari.layers.shapes._shapes_constants import Mode
 from napari.layers.shapes._shapes_models import (
     Ellipse,
     Line,
@@ -18,7 +18,7 @@ from napari.layers.shapes._shapes_utils import point_to_lines
 from napari.settings import get_settings
 
 if TYPE_CHECKING:
-    from typing import Generator, List, Optional, Tuple
+    from typing import Generator, Optional, Tuple
 
     import numpy.typing as npt
     from vispy.app.canvas import MouseEvent
@@ -89,9 +89,10 @@ def select(layer: Shapes, event: MouseEvent) -> Generator[None, None, None]:
 
     # Set _drag_start value here to prevent an offset when mouse_move happens
     # https://github.com/napari/napari/pull/4999
-    _set_drag_start(layer, layer.world_to_data(event.position))
+    layer._set_drag_start(layer.world_to_data(event.position))
     yield
 
+    is_moving = False
     # on move
     while event.type == 'mouse_move':
         coordinates = layer.world_to_data(event.position)
@@ -101,8 +102,19 @@ def select(layer: Shapes, event: MouseEvent) -> Generator[None, None, None]:
         # Drag any selected shapes
         if len(layer.selected_data) == 0:
             _drag_selection_box(layer, coordinates)
-        else:
-            _move_active_element_under_cursor(layer, coordinates)
+        elif not is_moving:
+            if vertex_under_cursor is not None:
+                vertex_indices = ((vertex_under_cursor,),)
+            else:
+                vertex_indices = tuple(
+                    tuple(
+                        vertex_index
+                        for vertex_index, coord in enumerate(layer.data[i])
+                    )
+                    for i in layer.selected_data
+                )
+            is_moving = True
+        layer._move_active_element_under_cursor(coordinates)
 
         # if a shape is being moved, update the thumbnail
         if layer._is_moving:
@@ -111,19 +123,13 @@ def select(layer: Shapes, event: MouseEvent) -> Generator[None, None, None]:
 
     # only emit data once dragging has finished
     if layer._is_moving:
-        vertex_indices = tuple(
-            tuple(
-                vertex_index
-                for vertex_index, coord in enumerate(layer.data[i])
-            )
-            for i in layer.selected_data
-        )
         layer.events.data(
             value=layer.data,
             action=ActionType.CHANGED,
             data_indices=tuple(layer.selected_data),
             vertex_indices=vertex_indices,
         )
+        is_moving = False
 
     # on release
     shift = 'Shift' in event.modifiers
@@ -269,7 +275,7 @@ def _add_line_rectangle_ellipse(
         # Drag any selected shapes
         coordinates = layer.world_to_data(event.position)
         layer._moving_coordinates = coordinates
-        _move_active_element_under_cursor(layer, coordinates)
+        layer._move_active_element_under_cursor(coordinates)
         yield
 
     # on release
@@ -459,7 +465,7 @@ def move_active_vertex_under_cursor(
         position.
     """
     if layer._is_creating:
-        _move_active_element_under_cursor(layer, coordinates)
+        layer._move_active_element_under_cursor(coordinates)
 
 
 def vertex_insert(layer: Shapes, event: MouseEvent) -> None:
@@ -638,211 +644,3 @@ def _drag_selection_box(layer: Shapes, coordinates: Tuple[float, ...]) -> None:
         layer._drag_start = coord
     layer._drag_box = np.array([layer._drag_start, coord])
     layer._set_highlight()
-
-
-def _set_drag_start(
-    layer: Shapes, coordinates: Tuple[float, ...]
-) -> List[float]:
-    """Indicate where in data space a drag event started.
-
-    Sets the coordinates relative to the center of the bounding box of a shape and returns the position
-    of where a drag event of a shape started.
-
-    Parameters
-    ----------
-    layer : Shapes
-        The napari layer shape
-    coordinates : Tuple[float, ...]
-        The position in image data space where dragging started.
-
-    Returns
-    -------
-    coord: List[float, ...]
-        The coordinates of where a shape drag event started.
-    """
-    coord = [coordinates[i] for i in layer._slice_input.displayed]
-    if layer._drag_start is None and len(layer.selected_data) > 0:
-        center = layer._selected_box[Box.CENTER]
-        layer._drag_start = coord - center
-    return coord
-
-
-def _move_active_element_under_cursor(
-    layer: Shapes, coordinates: Tuple[float, ...]
-) -> None:
-    """Moves object at given mouse position and set of indices.
-
-    Parameters
-    ----------
-    layer : napari.layers.Shapes
-        Shapes layer.
-    coordinates : Tuple[float, ...]
-        Position of mouse cursor in data coordinates.
-    """
-    # If nothing selected return
-    if len(layer.selected_data) == 0:
-        return
-
-    vertex = layer._moving_value[1]
-
-    if layer._mode in (
-        [Mode.SELECT, Mode.ADD_RECTANGLE, Mode.ADD_ELLIPSE, Mode.ADD_LINE]
-    ):
-        if layer._mode == Mode.SELECT and not layer._is_moving:
-            vertex_indices = tuple(
-                tuple(
-                    vertex_index
-                    for vertex_index, coord in enumerate(layer.data[i])
-                )
-                for i in layer.selected_data
-            )
-            layer.events.data(
-                value=layer.data,
-                action=ActionType.CHANGING,
-                data_indices=tuple(layer.selected_data),
-                vertex_indices=vertex_indices,
-            )
-
-        coord = _set_drag_start(layer, coordinates)
-        layer._moving_coordinates = coordinates
-        layer._is_moving = True
-        if vertex is None:
-            # Check where dragging box from to move whole object
-            center = layer._selected_box[Box.CENTER]
-            shift = coord - center - layer._drag_start
-            for index in layer.selected_data:
-                layer._data_view.shift(index, shift)
-            layer._selected_box = layer._selected_box + shift
-            layer.refresh()
-        elif vertex < Box.LEN:
-            # Corner / edge vertex is being dragged so resize object
-            box = layer._selected_box
-            if layer._fixed_vertex is None:
-                layer._fixed_index = (vertex + 4) % Box.LEN
-                layer._fixed_vertex = box[layer._fixed_index]
-
-            handle_offset = box[Box.HANDLE] - box[Box.CENTER]
-            if np.linalg.norm(handle_offset) == 0:
-                handle_offset = [1, 1]
-            handle_offset_norm = handle_offset / np.linalg.norm(handle_offset)
-
-            rot = np.array(
-                [
-                    [handle_offset_norm[0], -handle_offset_norm[1]],
-                    [handle_offset_norm[1], handle_offset_norm[0]],
-                ]
-            )
-            inv_rot = np.linalg.inv(rot)
-
-            fixed = layer._fixed_vertex
-            new = list(coord)
-
-            box_center = box[Box.CENTER]
-            if layer._fixed_aspect and layer._fixed_index % 2 == 0:
-                # corner
-                new = (box[vertex] - box_center) / np.linalg.norm(
-                    box[vertex] - box_center
-                ) * np.linalg.norm(new - box_center) + box_center
-
-            if layer._fixed_index % 2 == 0:
-                # corner selected
-                drag_scale = (inv_rot @ (new - fixed)) / (
-                    inv_rot @ (box[vertex] - fixed)
-                )
-            elif layer._fixed_index % 4 == 3:
-                # top or bottom selected
-                drag_scale = np.array(
-                    [
-                        (inv_rot @ (new - fixed))[0]
-                        / (inv_rot @ (box[vertex] - fixed))[0],
-                        1,
-                    ]
-                )
-            else:
-                # left or right selected
-                drag_scale = np.array(
-                    [
-                        1,
-                        (inv_rot @ (new - fixed))[1]
-                        / (inv_rot @ (box[vertex] - fixed))[1],
-                    ]
-                )
-
-            # prevent box from shrinking below a threshold size
-            size = (np.linalg.norm(box[Box.TOP_LEFT] - box_center),)
-            if (
-                np.linalg.norm(size * drag_scale)
-                < layer._normalized_vertex_radius
-            ):
-                drag_scale[:] = 1
-            # on vertical/horizontal drags we get scale of 0
-            # when we actually simply don't want to scale
-            drag_scale[drag_scale == 0] = 1
-
-            # check orientation of box
-            if abs(handle_offset_norm[0]) == 1:
-                for index in layer.selected_data:
-                    layer._data_view.scale(
-                        index, drag_scale, center=layer._fixed_vertex
-                    )
-                layer._scale_box(drag_scale, center=layer._fixed_vertex)
-            else:
-                scale_mat = np.array([[drag_scale[0], 0], [0, drag_scale[1]]])
-                transform = rot @ scale_mat @ inv_rot
-                for index in layer.selected_data:
-                    layer._data_view.shift(index, -layer._fixed_vertex)
-                    layer._data_view.transform(index, transform)
-                    layer._data_view.shift(index, layer._fixed_vertex)
-                layer._transform_box(transform, center=layer._fixed_vertex)
-            layer.refresh()
-        elif vertex == 8:
-            # Rotation handle is being dragged so rotate object
-            handle = layer._selected_box[Box.HANDLE]
-            layer._fixed_vertex = layer._selected_box[Box.CENTER]
-            offset = handle - layer._fixed_vertex
-            layer._drag_start = -np.degrees(np.arctan2(offset[0], -offset[1]))
-
-            new_offset = coord - layer._fixed_vertex
-            new_angle = -np.degrees(np.arctan2(new_offset[0], -new_offset[1]))
-            fixed_offset = handle - layer._fixed_vertex
-            fixed_angle = -np.degrees(
-                np.arctan2(fixed_offset[0], -fixed_offset[1])
-            )
-
-            if layer._fixed_aspect:
-                angle = np.round(new_angle / 45) * 45 - fixed_angle
-            else:
-                angle = new_angle - fixed_angle
-
-            for index in layer.selected_data:
-                layer._data_view.rotate(
-                    index, angle, center=layer._fixed_vertex
-                )
-            layer._rotate_box(angle, center=layer._fixed_vertex)
-            layer.refresh()
-
-    elif (
-        layer._mode
-        in [
-            Mode.DIRECT,
-            Mode.ADD_PATH,
-            Mode.ADD_POLYGON,
-            Mode.ADD_POLYGON_LASSO,
-        ]
-        and vertex is not None
-    ):
-        layer._moving_coordinates = coordinates
-        layer._is_moving = True
-        index = layer._moving_value[0]
-        shape_type = type(layer._data_view.shapes[index])
-        if shape_type == Ellipse:
-            # TODO: Implement DIRECT vertex moving of ellipse
-            pass
-        else:
-            new_type = Polygon if shape_type == Rectangle else None
-            vertices = layer._data_view.shapes[index].data
-            vertices[vertex] = coordinates
-            layer._data_view.edit(index, vertices, new_type=new_type)
-            shapes = layer.selected_data
-            layer._selected_box = layer.interaction_box(shapes)
-            layer.refresh()

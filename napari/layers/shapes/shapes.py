@@ -33,6 +33,7 @@ from napari.layers.shapes._shapes_constants import (
     ShapeType,
     shape_classes,
 )
+from napari.layers.shapes._shapes_models import Ellipse, Polygon, Rectangle
 from napari.layers.shapes._shapes_mouse_bindings import (
     add_ellipse,
     add_line,
@@ -3087,3 +3088,223 @@ class Shapes(Layer):
         labels = self._data_view.to_labels(labels_shape=labels_shape)
 
         return labels
+
+    def _set_drag_start(self, coordinates: Tuple[float, ...]) -> List[float]:
+        """Indicate where in data space a drag event started.
+
+        Sets the coordinates relative to the center of the bounding box of a shape and returns the position
+        of where a drag event of a shape started.
+
+        Parameters
+        ----------
+        coordinates : Tuple[float, ...]
+            The position in image data space where dragging started.
+
+        Returns
+        -------
+        coord: List[float, ...]
+            The coordinates of where a shape drag event started.
+        """
+        coord = [coordinates[i] for i in self._slice_input.displayed]
+        if self._drag_start is None and len(self.selected_data) > 0:
+            center = self._selected_box[Box.CENTER]
+            self._drag_start = coord - center
+        return coord
+
+    def _move_active_element_under_cursor(
+        self, coordinates: Tuple[float, ...]
+    ) -> None:
+        """Moves object at given mouse position and set of indices.
+
+        Parameters
+        ----------
+        coordinates : Tuple[float, ...]
+            Position of mouse cursor in data coordinates.
+        """
+        # If nothing selected return
+        if len(self.selected_data) == 0:
+            return
+
+        # This is None when moving whole shape(s), but not when moving a vertex
+        vertex = self._moving_value[1]
+
+        if self._mode in (
+            [Mode.SELECT, Mode.ADD_RECTANGLE, Mode.ADD_ELLIPSE, Mode.ADD_LINE]
+        ):
+            # explicit is not None because of possibility of vertex being 0
+            if self._mode == Mode.SELECT and not self._is_moving:
+                if vertex is not None:
+                    vertex_indices = ((vertex,),)
+                else:
+                    vertex_indices = tuple(
+                        tuple(
+                            vertex_index
+                            for vertex_index, coord in enumerate(self.data[i])
+                        )
+                        for i in self.selected_data
+                    )
+                self.events.data(
+                    value=self.data,
+                    action=ActionType.CHANGING,
+                    data_indices=tuple(self.selected_data),
+                    vertex_indices=vertex_indices,
+                )
+
+            coord = self._set_drag_start(coordinates)
+            self._moving_coordinates = coordinates
+            self._is_moving = True
+            if vertex is None:
+                # Check where dragging box from to move whole object
+                center = self._selected_box[Box.CENTER]
+                shift = coord - center - self._drag_start
+                for index in self.selected_data:
+                    self._data_view.shift(index, shift)
+                self._selected_box = self._selected_box + shift
+                self.refresh()
+            elif vertex < Box.LEN:
+                # Corner / edge vertex is being dragged so resize object
+                box = self._selected_box
+                if self._fixed_vertex is None:
+                    self._fixed_index = (vertex + 4) % Box.LEN
+                    self._fixed_vertex = box[self._fixed_index]
+
+                handle_offset = box[Box.HANDLE] - box[Box.CENTER]
+                if np.linalg.norm(handle_offset) == 0:
+                    handle_offset = [1, 1]
+                handle_offset_norm = handle_offset / np.linalg.norm(
+                    handle_offset
+                )
+
+                rot = np.array(
+                    [
+                        [handle_offset_norm[0], -handle_offset_norm[1]],
+                        [handle_offset_norm[1], handle_offset_norm[0]],
+                    ]
+                )
+                inv_rot = np.linalg.inv(rot)
+
+                fixed = self._fixed_vertex
+                new = list(coord)
+
+                box_center = box[Box.CENTER]
+                if self._fixed_aspect and self._fixed_index % 2 == 0:
+                    # corner
+                    new = (box[vertex] - box_center) / np.linalg.norm(
+                        box[vertex] - box_center
+                    ) * np.linalg.norm(new - box_center) + box_center
+
+                if self._fixed_index % 2 == 0:
+                    # corner selected
+                    drag_scale = (inv_rot @ (new - fixed)) / (
+                        inv_rot @ (box[vertex] - fixed)
+                    )
+                elif self._fixed_index % 4 == 3:
+                    # top or bottom selected
+                    drag_scale = np.array(
+                        [
+                            (inv_rot @ (new - fixed))[0]
+                            / (inv_rot @ (box[vertex] - fixed))[0],
+                            1,
+                        ]
+                    )
+                else:
+                    # left or right selected
+                    drag_scale = np.array(
+                        [
+                            1,
+                            (inv_rot @ (new - fixed))[1]
+                            / (inv_rot @ (box[vertex] - fixed))[1],
+                        ]
+                    )
+
+                # prevent box from shrinking below a threshold size
+                size = (np.linalg.norm(box[Box.TOP_LEFT] - box_center),)
+                if (
+                    np.linalg.norm(size * drag_scale)
+                    < self._normalized_vertex_radius
+                ):
+                    drag_scale[:] = 1
+                # on vertical/horizontal drags we get scale of 0
+                # when we actually simply don't want to scale
+                drag_scale[drag_scale == 0] = 1
+
+                # check orientation of box
+                if abs(handle_offset_norm[0]) == 1:
+                    for index in self.selected_data:
+                        self._data_view.scale(
+                            index, drag_scale, center=self._fixed_vertex
+                        )
+                    self._scale_box(drag_scale, center=self._fixed_vertex)
+                else:
+                    scale_mat = np.array(
+                        [[drag_scale[0], 0], [0, drag_scale[1]]]
+                    )
+                    transform = rot @ scale_mat @ inv_rot
+                    for index in self.selected_data:
+                        self._data_view.shift(index, -self._fixed_vertex)
+                        self._data_view.transform(index, transform)
+                        self._data_view.shift(index, self._fixed_vertex)
+                    self._transform_box(transform, center=self._fixed_vertex)
+                self.refresh()
+            elif vertex == 8:
+                # Rotation handle is being dragged so rotate object
+                handle = self._selected_box[Box.HANDLE]
+                self._fixed_vertex = self._selected_box[Box.CENTER]
+                offset = handle - self._fixed_vertex
+                self._drag_start = -np.degrees(
+                    np.arctan2(offset[0], -offset[1])
+                )
+
+                new_offset = coord - self._fixed_vertex
+                new_angle = -np.degrees(
+                    np.arctan2(new_offset[0], -new_offset[1])
+                )
+                fixed_offset = handle - self._fixed_vertex
+                fixed_angle = -np.degrees(
+                    np.arctan2(fixed_offset[0], -fixed_offset[1])
+                )
+
+                if self._fixed_aspect:
+                    angle = np.round(new_angle / 45) * 45 - fixed_angle
+                else:
+                    angle = new_angle - fixed_angle
+
+                for index in self.selected_data:
+                    self._data_view.rotate(
+                        index, angle, center=self._fixed_vertex
+                    )
+                self._rotate_box(angle, center=self._fixed_vertex)
+                self.refresh()
+
+        elif (
+            self._mode
+            in [
+                Mode.DIRECT,
+                Mode.ADD_PATH,
+                Mode.ADD_POLYGON,
+                Mode.ADD_POLYGON_LASSO,
+            ]
+            and vertex is not None
+        ):
+            if not self._is_moving:
+                self.events.data(
+                    value=self.data,
+                    action=ActionType.CHANGING,
+                    data_indices=tuple(self.selected_data),
+                    vertex_indices=((vertex,),),
+                )
+            self._moving_coordinates = coordinates
+            self._is_moving = True
+            index = self._moving_value[0]
+            shape_type = type(self._data_view.shapes[index])
+            if shape_type == Ellipse:
+                # TODO: Implement DIRECT vertex moving of ellipse
+                pass
+            else:
+                new_type = Polygon if shape_type == Rectangle else None
+                vertices = self._data_view.shapes[index].data
+                vertices[vertex] = coordinates
+                self._data_view.edit(index, vertices, new_type=new_type)
+                shapes = self.selected_data
+                self._selected_box = self.interaction_box(shapes)
+                self.refresh()

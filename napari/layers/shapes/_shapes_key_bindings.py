@@ -2,9 +2,6 @@ import numpy as np
 from app_model.types import KeyCode
 
 from napari.layers.shapes._shapes_constants import Box, Mode
-from napari.layers.shapes._shapes_mouse_bindings import (
-    _move_active_element_under_cursor,
-)
 from napari.layers.shapes.shapes import Shapes
 from napari.layers.utils.layer_utils import (
     register_layer_action,
@@ -29,7 +26,7 @@ def hold_to_lock_aspect_ratio(layer: Shapes):
         layer._aspect_ratio = 1
     if layer._is_moving:
         assert layer._moving_coordinates is not None, layer
-        _move_active_element_under_cursor(layer, layer._moving_coordinates)
+        layer._move_active_element_under_cursor(layer._moving_coordinates)
 
     yield
 
