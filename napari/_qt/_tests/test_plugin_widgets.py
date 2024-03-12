@@ -191,3 +191,9 @@ def test_inject_viewer_proxy(make_napari_viewer):
     with patch('napari.utils.misc.ROOT_DIR', new='/some/other/package'):
         with pytest.warns(FutureWarning):
             wdg.fail()
+
+
+def test_get_widgets(make_napari_viewer):
+    viewer = make_napari_viewer()
+    # TODO: open a widget and make sure it's in this list
+    assert viewer.window.dock_widgets == {}

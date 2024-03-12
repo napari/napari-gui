@@ -13,6 +13,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     ClassVar,
+    Dict,
     List,
     MutableMapping,
     Optional,
@@ -799,6 +800,14 @@ class Window:
     def _status_bar(self):
         # TODO: remove from window
         return self._qt_window.statusBar()
+
+    @property
+    def dock_widgets(self) -> Dict[str, QWidget]:
+        """All open dock widgets."""
+        return {
+            name: self._dock_widgets[name].widget()
+            for name in self._dock_widgets
+        }
 
     def _update_menu_state(self, menu):
         """Update enabled/visible state of menu item with context."""
