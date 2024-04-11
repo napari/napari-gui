@@ -132,7 +132,7 @@ class VispyCanvasOverlay(VispyBaseOverlay):
         scale = abs(self.node.transform.scale[0])
         self.node.transform.scale = [scale, 1, 1, 1]
 
-    def reset(self):
+    def reset(self) -> None:
         super().reset()
         self._on_position_change()
 

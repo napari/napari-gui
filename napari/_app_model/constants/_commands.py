@@ -54,6 +54,8 @@ class CommandId(StrEnum):
     TOGGLE_VIEWER_SCALE_BAR = 'napari:window:view:toggle_viewer_scale_bar'
     TOGGLE_VIEWER_SCALE_BAR_COLORED = 'napari:window:view:toggle_viewer_scale_bar_colored'
     TOGGLE_VIEWER_SCALE_BAR_TICKS = 'napari:window:view:toggle_viewer_scale_bar_ticks'
+    TOGGLE_VIEWER_SLICE_TEXT = 'napari:window:view:toggle_viewer_slice_text'
+    TOGGLE_VIEWER_SLICE_TEXT_COLORED = 'napari:window:view:toggle_viewer_slice_text_colored'
 
     # Plugins menubar
     DLG_PLUGIN_INSTALL = 'napari:window:plugins:plugin_install_dialog'
@@ -155,6 +157,8 @@ _COMMAND_INFO = {
     CommandId.TOGGLE_VIEWER_SCALE_BAR: _i(trans._('Scale Bar Visible')),
     CommandId.TOGGLE_VIEWER_SCALE_BAR_COLORED: _i(trans._('Scale Bar Colored')),
     CommandId.TOGGLE_VIEWER_SCALE_BAR_TICKS: _i(trans._('Scale Bar Ticks')),
+    CommandId.TOGGLE_VIEWER_SLICE_TEXT: _i(trans._('Slice Bar Visible')),
+    CommandId.TOGGLE_VIEWER_SLICE_TEXT_COLORED: _i(trans._('Slice Bar Colored')),
 
     # Plugins menubar
     CommandId.DLG_PLUGIN_INSTALL: _i(trans._('Install/Uninstall Plugins...')),

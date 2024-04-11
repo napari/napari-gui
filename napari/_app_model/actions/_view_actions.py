@@ -11,7 +11,12 @@ from napari._app_model.constants import CommandId, MenuGroup, MenuId
 from napari.settings import get_settings
 
 VIEW_ACTIONS: list[Action] = []
-MENUID_DICT = {'axes': MenuId.VIEW_AXES, 'scale_bar': MenuId.VIEW_SCALEBAR}
+MENUID_DICT = {
+    'axes': MenuId.VIEW_AXES,
+    'scale_bar': MenuId.VIEW_SCALEBAR,
+    'slice_text': MenuId.VIEW_SLICE_TEXT,
+}
+
 
 for cmd, viewer_attr, sub_attr in (
     (CommandId.TOGGLE_VIEWER_AXES, 'axes', 'visible'),
@@ -22,6 +27,8 @@ for cmd, viewer_attr, sub_attr in (
     (CommandId.TOGGLE_VIEWER_SCALE_BAR, 'scale_bar', 'visible'),
     (CommandId.TOGGLE_VIEWER_SCALE_BAR_COLORED, 'scale_bar', 'colored'),
     (CommandId.TOGGLE_VIEWER_SCALE_BAR_TICKS, 'scale_bar', 'ticks'),
+    (CommandId.TOGGLE_VIEWER_SLICE_TEXT, 'slice_text', 'visible'),
+    (CommandId.TOGGLE_VIEWER_SLICE_TEXT_COLORED, 'slice_text', 'colored'),
 ):
     VIEW_ACTIONS.append(
         ViewerToggleAction(

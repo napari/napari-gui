@@ -458,25 +458,31 @@ def test_axes_visible(make_napari_viewer):
 
 @skip_on_win_ci
 @skip_local_popups
-def test_scale_bar_visible(make_napari_viewer):
+@pytest.mark.parametrize('attribute', ['scale_bar', 'slice_text'])
+def test_aux_overlay_visible(make_napari_viewer, attribute):
     """Test that something appears when scale bar becomes visible."""
     viewer = make_napari_viewer(show=True)
     viewer.window._qt_viewer.set_welcome_visible(False)
 
+    # required by slice bar
+    viewer.add_image(np.zeros((20, 20, 20)))
+
+    aux_bar = getattr(viewer, attribute)
+
     # Check scale bar is not visible
     launch_screenshot = viewer.screenshot(canvas_only=True, flash=False)
-    assert not viewer.scale_bar.visible
+    assert not aux_bar.visible
 
     # Make scale bar visible and check something is seen
-    viewer.scale_bar.visible = True
+    aux_bar.visible = True
     on_screenshot = viewer.screenshot(canvas_only=True, flash=False)
-    assert viewer.scale_bar.visible
+    assert aux_bar.visible
     assert abs(on_screenshot - launch_screenshot).max() > 0
 
     # Make scale bar not visible and check it is gone
-    viewer.scale_bar.visible = False
+    aux_bar.visible = False
     off_screenshot = viewer.screenshot(canvas_only=True, flash=False)
-    assert not viewer.scale_bar.visible
+    assert not aux_bar.visible
     np.testing.assert_almost_equal(launch_screenshot, off_screenshot)
 
 
