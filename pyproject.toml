@@ -121,6 +121,7 @@ optional = [
     "triangle ; platform_machine != 'arm64'",
     "numba>=0.57.1",
     "zarr>=2.12.0", # needed by `builtins` (dask.array.from_zarr) to open zarr
+    "PartSegCore-compiled-backend >= 0.15.4",
 ]
 testing = [
     "babel>=2.9.0",

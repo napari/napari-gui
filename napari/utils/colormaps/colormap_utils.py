@@ -16,13 +16,13 @@ from vispy.color import (
 )
 from vispy.color.colormap import LUT_len
 
+from napari.utils.colormaps._colormap_numpy import minimum_dtype_for_labels
 from napari.utils.colormaps.bop_colors import bopd
 from napari.utils.colormaps.colormap import (
     Colormap,
     ColormapInterpolationMode,
     CyclicLabelColormap,
     DirectLabelColormap,
-    minimum_dtype_for_labels,
 )
 from napari.utils.colormaps.inverse_colormaps import inverse_cmaps
 from napari.utils.colormaps.standardize_color import transform_color
