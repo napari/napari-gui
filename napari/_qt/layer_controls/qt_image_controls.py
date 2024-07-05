@@ -176,6 +176,9 @@ class QtImageControls(QtBaseImageControls):
         self.layout().addRow(trans._('gamma:'), self.gammaSlider)
         self.layout().addRow(trans._('colormap:'), colormap_layout)
         self.layout().addRow(trans._('blending:'), self.blendComboBox)
+        self.layout().addRow(
+            trans._('projection mode:'), self.projectionComboBox
+        )
         self.layout().addRow(self.interpLabel, self.interpComboBox)
         self.layout().addRow(self.depictionLabel, self.depictionComboBox)
         self.layout().addRow(self.renderLabel, self.renderComboBox)

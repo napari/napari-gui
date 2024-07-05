@@ -21,6 +21,7 @@ from superqt import QElidingLineEdit, ensure_object_thread
 
 from napari._qt.dialogs.qt_modal import QtPopup
 from napari._qt.qthreading import _new_worker_qthread
+from napari._qt.widgets._slider_compat import QDoubleSlider
 from napari._qt.widgets.qt_scrollbar import ModifiedScrollBar
 from napari.settings import get_settings
 from napari.settings._constants import LoopMode
@@ -44,6 +45,7 @@ class QtDimSliderWidget(QWidget):
     size_changed = Signal()
     play_started = Signal()
     play_stopped = Signal()
+    thickness_changed = Signal(float)
 
     def __init__(self, parent: QWidget, axis: int) -> None:
         super().__init__(parent=parent)
@@ -93,13 +95,15 @@ class QtDimSliderWidget(QWidget):
         self._create_axis_label_widget()
         self._create_range_slider_widget()
         self._create_play_button_widget()
+        self._create_thickness_slider_widget()
 
         layout.addWidget(self.axis_label)
         layout.addWidget(self.play_button)
-        layout.addWidget(self.slider, stretch=1)
+        layout.addWidget(self.slider, stretch=2)
         layout.addWidget(self.curslice_label)
         layout.addWidget(sep)
         layout.addWidget(self.totslice_label)
+        layout.addWidget(self.thickness_slider, stretch=1)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(2)
         layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
@@ -170,6 +174,29 @@ class QtDimSliderWidget(QWidget):
         slider.sliderPressed.connect(slider_focused_listener)
         self.slider = slider
 
+    def _thickness_changed(self, value):
+        thick = list(self.dims.thickness)
+        thick[self.axis] = value
+        self.dims.thickness = tuple(thick)
+
+    def _create_thickness_slider_widget(self):
+        """Creates a slice_thickness slider widget for a given axis."""
+        slider = QDoubleSlider(Qt.Horizontal)
+        slider.setObjectName('thickness_slider')
+        slider.setFocusPolicy(Qt.NoFocus)
+        slider.setMinimum(0)
+        slider.setMaximum(self.dims.nsteps[self.axis] * 2)
+        slider.setValue(self.dims.thickness[self.axis])
+
+        slider.valueChanged.connect(self._thickness_changed)
+
+        def slider_focused_listener():
+            self.dims.last_used = self.axis
+
+        # linking focus listener to the last used:
+        slider.sliderPressed.connect(slider_focused_listener)
+        self.thickness_slider = slider
+
     def _create_play_button_widget(self):
         """Creates the actual play button, which has the modal popup."""
         self.play_button = QtPlayButton(
@@ -234,6 +261,10 @@ class QtDimSliderWidget(QWidget):
             self.totslice_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
             self._update_slice_labels()
 
+            self.thickness_slider.setMinimum(0)
+            self.thickness_slider.setMaximum(self.dims.nsteps[self.axis] * 2)
+            self.thickness_slider.setValue(self.dims.thickness[self.axis])
+
     def _update_slider(self):
         """Update dimension slider."""
         self.slider.setValue(self.dims.current_step[self.axis])
@@ -243,6 +274,9 @@ class QtDimSliderWidget(QWidget):
         """Update slice labels to match current dimension slider position."""
         self.curslice_label.setText(str(self.dims.current_step[self.axis]))
         self.curslice_label.setAlignment(Qt.AlignmentFlag.AlignRight)
+
+    def _update_thickness(self):
+        self.thickness_slider.setValue(self.dims.thickness[self.axis])
 
     @property
     def fps(self):

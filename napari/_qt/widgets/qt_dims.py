@@ -58,6 +58,7 @@ class QtDims(QWidget):
         self._update_nsliders()
         self.dims.events.ndim.connect(self._update_nsliders)
         self.dims.events.current_step.connect(self._update_slider)
+        self.dims.events.thickness.connect(self._update_thickness)
         self.dims.events.range.connect(self._update_range)
         self.dims.events.ndisplay.connect(self._update_display)
         self.dims.events.order.connect(self._update_display)
@@ -95,6 +96,11 @@ class QtDims(QWidget):
         nsliders = np.sum(self._displayed_sliders)
         self.setMinimumHeight(nsliders * self.SLIDERHEIGHT)
         self._resize_slice_labels()
+
+    def _update_thickness(self):
+        """Updates thickness for a given slider."""
+        for widget in self.slider_widgets:
+            widget._update_thickness()
 
     def _update_display(self):
         """Updates display for all sliders."""
