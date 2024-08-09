@@ -28,7 +28,7 @@ from napari.components._viewer_mouse_bindings import dims_scroll
 from napari.components.camera import Camera
 from napari.components.cursor import Cursor, CursorStyle
 from napari.components.dims import Dims
-from napari.components.grid import GridCanvas
+from napari.components.grid import GridCanvas, MultiChannelGridCanvas
 from napari.components.layerlist import LayerList
 from napari.components.overlays import (
     AxesOverlay,
@@ -182,6 +182,10 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
     cursor: Cursor = Field(default_factory=Cursor, allow_mutation=False)
     dims: Dims = Field(default_factory=Dims, allow_mutation=False)
     grid: GridCanvas = Field(default_factory=GridCanvas, allow_mutation=False)
+    multi_channel_gridcanvas: MultiChannelGridCanvas = Field(
+        default_factory=MultiChannelGridCanvas, allow_mutation=False
+    )
+
     layers: LayerList = Field(
         default_factory=LayerList, allow_mutation=False
     )  # Need to create custom JSON encoder for layer!
@@ -312,6 +316,11 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         """Keep viewer grid settings up to date with settings values."""
 
         settings = get_settings()
+        self.multi_channel_gridcanvas.stride = settings.application.grid_stride
+        self.multi_channel_gridcanvas.shape = (
+            settings.application.grid_height,
+            settings.application.grid_width,
+        )
 
         self.grid.stride = settings.application.grid_stride
         self.grid.shape = (

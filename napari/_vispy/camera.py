@@ -2,6 +2,7 @@ import numpy as np
 from vispy.scene import ArcballCamera, BaseCamera, PanZoomCamera
 
 from napari._vispy.utils.quaternion import quaternion2euler_degrees
+from napari.utils.events import disconnect_events
 
 
 class VispyCamera:
@@ -97,6 +98,8 @@ class VispyCamera:
     @property
     def zoom(self):
         """float: Scale from canvas pixels to world pixels."""
+        # if self._view.canvas is None:
+        #     print()
         canvas_size = np.array(self._view.canvas.size)
         if self._view.camera == self._3D_camera:
             # For fov = 0.0 normalize scale factor by canvas size to get scale factor.
@@ -194,6 +197,9 @@ class VispyCamera:
             self._on_perspective_change
         ):
             self._camera.perspective = self.perspective
+
+    def disconnect(self):
+        disconnect_events(self._camera.events, self)
 
 
 def viewbox_key_event(event):

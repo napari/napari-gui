@@ -165,6 +165,12 @@ class VispyCanvas:
         self.viewer.camera.events.zoom.connect(self._on_cursor)
         self.viewer.layers.events.reordered.connect(self._reorder_layers)
         self.viewer.layers.events.removed.connect(self._remove_layer)
+        self.viewer.multi_channel_gridcanvas.events.enabled.connect(
+            self._on_grid_change
+        )
+        self.viewer.multi_channel_gridcanvas.events.stride.connect(
+            self._on_grid_change
+        )
         self.destroyed.connect(self._disconnect_theme)
 
     @property
@@ -332,7 +338,14 @@ class VispyCanvas:
             of the viewer.
         """
         nd = self.viewer.dims.ndisplay
-        transform = self.view.scene.transform
+
+        # TODO: figure out how to extent this to all grid boxes, main thing is to see which viewbox the mouse is hovering over
+        # and to get the transform solely of that viewbox. This would allow compatibility with current code returning one
+        # position world.
+        if self.viewer.multi_channel_gridcanvas.enabled:
+            transform = self.grid_views[0].scene.transform
+        else:
+            transform = self.view.scene.transform
         mapped_position = transform.imap(list(position))[:nd]
         position_world_slice = mapped_position[::-1]
 
@@ -641,3 +654,56 @@ class VispyCanvas:
     def enable_dims_play(self, *args) -> None:
         """Enable playing of animation. False if awaiting a draw event"""
         self.viewer.dims._play_ready = True
+
+    def _on_grid_change(self):
+        """Change grid view"""
+        if self.viewer.multi_channel_gridcanvas.enabled:
+            grid_shape, n_gridboxes = (
+                self.viewer.multi_channel_gridcanvas.actual_shape(
+                    len(self.layer_to_visual)
+                )
+            )
+
+            self.grid = self.central_widget.add_grid()
+            camera = self.camera._view.camera
+            self.grid_views = [
+                self.grid.add_view(
+                    row=y, col=x, camera=camera if y == 0 and x == 0 else None
+                )
+                for y in range(grid_shape[0])
+                for x in range(grid_shape[1])
+                if x * y < n_gridboxes
+            ]
+            self.camera._view = self.grid_views[0]
+            self.central_widget.remove_widget(self.view)
+            # del self.view
+            self.grid_cameras = [
+                VispyCamera(
+                    self.grid_views[i], self.viewer.camera, self.viewer.dims
+                )
+                for i in range(len(self.grid_views[1:]))
+            ]
+
+            for ind, layer in enumerate(self.layer_to_visual.values()):
+                if ind != 0:
+                    self.grid_views[ind].camera = self.grid_cameras[
+                        ind - 1
+                    ]._view.camera
+                    self.grid_views[ind].camera.link(self.grid_views[0].camera)
+                layer.node.parent = self.grid_views[ind].scene
+        else:
+            for layer in self.layer_to_visual.values():
+                layer.node.parent = self.view.scene
+            self.central_widget.remove_widget(self.grid)
+            self.central_widget.add_widget(self.view)
+            self.camera._view = self.view
+
+            # TODO properly disconnect events of grid and delete all viewboxes
+            del self.grid
+
+            for camera in self.grid_cameras:
+                camera.disconnect()
+                del camera
+
+            # TODO respect 3d camera if enabled
+            self.camera._view.camera = self.camera._2D_camera
