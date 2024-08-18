@@ -430,6 +430,7 @@ module = [
     'napari._qt.containers.qt_tree_model',
     'napari._qt.containers.qt_tree_view',
     'napari._qt.dialogs.confirm_close_dialog',
+    'napari._qt.dialogs.log_dialog',
     'napari._qt.dialogs.preferences_dialog',
     'napari._qt.dialogs.qt_about',
     'napari._qt.dialogs.qt_activity_dialog',
