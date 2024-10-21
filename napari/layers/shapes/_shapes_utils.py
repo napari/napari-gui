@@ -3,8 +3,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 import numpy as np
+from scipy import sparse
+from skimage import measure
 from skimage.draw import line, polygon2mask
-from vispy.geometry import PolygonData
+from vispy.geometry import Triangulation
 from vispy.visuals.tube import _frenet_frames
 
 from napari.layers.utils.layer_utils import segment_normal
@@ -587,12 +589,114 @@ def triangulate_ellipse(
     return vertices, triangles
 
 
-def triangulate_face(data: npt.NDArray) -> tuple[npt.NDArray, npt.NDArray]:
+def _normalize_vertices_and_edges(vertices, close=False):
+    """Get list of edges that must be in a triangulation for a path or polygon.
+
+    This function ensures that:
+
+    - no nodes are repeated, as this can cause problems with triangulation
+      algorithms.
+    - edges that appear twice are discarded. This allows representation of
+      polygons with holes in them.
+
+    Parameters
+    ----------
+    vertices: np.ndarray[np.floating], shape (N, 2)
+        The 2D coordinates of the polygon's vertices. They are expected to be
+        in the order in which they appear in the polygon: that is, vertices
+        that follow each other are expected to be connected to each other. The
+        exception is if the same edge is visited twice (in any direction): such
+        edges are removed.
+
+        Holes are expected to be represented by a polygon embedded within the
+        larger polygon but winding in the opposite direction.
+
+    close: bool
+        Whether to close the polygon or treat it as a path. Note: this argument
+        has no effect if the last vertex is equal to the first one — then the
+        closing is explicit.
+
+    Returns
+    -------
+    new_vertices: np.ndarray[np.floating], shape (M, 2)
+        Vertices with duplicate nodes removed.
+    edges: np.ndarray[np.intp], shape (P, 2)
+        List of edges in the polygon, expressed as an array of pairs of vertex
+        indices. This is usually [(0, 1), (1, 2), ... (N-1, 0)], but edges
+        that are visited twice are removed.
+    """
+    if tuple(vertices[0]) == tuple(vertices[-1]):  # closed polygon
+        vertices = vertices[:-1]  # make closing implicit
+        close = True
+    len_data = len(vertices)
+
+    # First, we connect every vertex to its following neighbour,
+    # ignoring the possibility of repeated vertices
+    edges_raw = np.empty((len_data, 2), dtype=np.uint32)
+    edges_raw[:, 0] = np.arange(len_data)
+    edges_raw[:, 1] = np.arange(1, len_data + 1)
+
+    if close:
+        # connect last with first vertex
+        edges_raw[-1, 1] = 0
+    else:
+        # final vertex is not connected to anything
+        edges_raw = edges_raw[:-1]
+
+    # Now, we make sure the vertices are unique (repeated vertices cause
+    # problems in spatial algorithms, and those problems can manifest as
+    # segfaults if said algorithms are implemented in C-like languages.)
+    new_vertices, inv = np.unique(vertices, axis=0, return_inverse=True)
+
+    # Then, express the edges in terms of the unique nodes
+    edges_unique_nodes = inv[edges_raw]
+
+    # Finally, make sure that edges are not repeated. In the case of polygons
+    # with holes, there's typically an edge going from the outer polygon to
+    # the hole, and back, and those edges might not be planar.
+    # This step counts repeated edges...
+    edges, ct = np.unique(
+        np.sort(edges_unique_nodes, axis=1), axis=0, return_counts=True
+    )
+    # and finally, we return only edges that don't repeat:
+    return new_vertices, edges[ct == 1]
+
+
+def _cull_triangles_not_in_poly(vertices, triangles, poly):
+    """Remove triangles that are not inside the polygon.
+
+    Parameters
+    ----------
+    vertices: np.ndarray[np.floating], shape (N, 2)
+        The vertices of the triangulation. Holes in the polygon are defined by
+        an embedded polygon that starts from an arbitrary point in the
+        enclosing polygon and wind in the opposite direction.
+    triangles: np.ndarray[np.intp], shape (M, 3)
+        Triangles in the triangulation, defined by three indices into the
+        vertex array.
+    poly: np.ndarray[np.floating], shape (P, 2)
+        The vertices of the polygon. Holes in the polygon are defined by
+        an embedded polygon that starts from an arbitrary point in the
+        enclosing polygon and wind in the opposite direction.
+
+    Returns
+    -------
+    culled_triangles: np.ndarray[np.intp], shape (P, 3), P ≤ M
+        A subset of the input triangles.
+    """
+    centers = np.mean(vertices[triangles], axis=1)
+    in_poly = measure.points_in_poly(centers, poly)
+    return triangles[in_poly]
+
+
+def triangulate_face(
+    polygon_vertices: npt.NDArray,
+) -> tuple[npt.NDArray, npt.NDArray]:
     """Determines the triangulation of the face of a shape.
 
     Parameters
     ----------
-    data : np.ndarray
+    polygon_vertices : np.ndarray
         Nx2 array of vertices of shape to be triangulated
 
     Returns
@@ -603,22 +707,33 @@ def triangulate_face(data: npt.NDArray) -> tuple[npt.NDArray, npt.NDArray]:
         Px3 array of the indices of the vertices that will form the
         triangles of the triangulation
     """
+    if _is_convex(polygon_vertices):
+        return _fan_triangulation(polygon_vertices)
 
+    raw_vertices, edges = _normalize_vertices_and_edges(
+        polygon_vertices, close=True
+    )
     if triangulate is not None:
-        len_data = len(data)
-
-        edges = np.empty((len_data, 2), dtype=np.uint32)
-        edges[:, 0] = np.arange(len_data)
-        edges[:, 1] = np.arange(1, len_data + 1)
-        # connect last with first vertex
-        edges[-1, 1] = 0
-
-        res = triangulate({'vertices': data, 'segments': edges}, 'p')
-        vertices, triangles = res['vertices'], res['triangles']
-    elif _is_convex(data):
-        vertices, triangles = _fan_triangulation(data)
+        # if the triangle library is installed, use it because it's faster.
+        res = triangulate(
+            {'vertices': raw_vertices, 'segments': edges}, opts='p'
+        )
+        vertices = res['vertices']
+        raw_triangles = res['triangles']
+        # unlike VisPy below, triangle's constrained Delaunay triangulation
+        # returns triangles inside the hole as well. (I guess in case you want
+        # to render holes but in a different color, for example.) In our case,
+        # we want to get rid of them, so we cull them with some NumPy
+        # calculations
+        triangles = _cull_triangles_not_in_poly(
+            vertices, raw_triangles, polygon_vertices
+        )
     else:
-        vertices, triangles = PolygonData(vertices=data).triangulate()
+        # otherwise, we use VisPy's triangulation, which is slower and gives
+        # less balanced polygons, but works.
+        tri = Triangulation(raw_vertices, edges)
+        tri.triangulate()
+        vertices, triangles = tri.pts, tri.tris
 
     triangles = triangles.astype(np.uint32)
 
@@ -628,12 +743,13 @@ def triangulate_face(data: npt.NDArray) -> tuple[npt.NDArray, npt.NDArray]:
 def triangulate_edge(
     path: npt.NDArray, closed: bool = False
 ) -> tuple[npt.NDArray, npt.NDArray, npt.NDArray]:
-    """Determines the triangulation of a path. The resulting `offsets` can
-    multiplied by a `width` scalar and be added to the resulting `centers`
-    to generate the vertices of the triangles for the triangulation, i.e.
-    `vertices = centers + width*offsets`. Using the `centers` and `offsets`
-    representation thus allows for the computed triangulation to be
-    independent of the line width.
+    """Determines the triangulation of a path.
+
+    The resulting `offsets` can multiplied by a `width` scalar and be added
+    to the resulting `centers` to generate the vertices of the triangles for
+    the triangulation, i.e. `vertices = centers + width*offsets`. Using the
+    `centers` and `offsets` representation thus allows for the computed
+    triangulation to be independent of the line width.
 
     Parameters
     ----------
@@ -699,13 +815,141 @@ def _sign_cross(x, y):
     raise ValueError(x.shape[1], y.shape[1])
 
 
-def generate_2D_edge_meshes(path, closed=False, limit=3, bevel=False):
-    """Determines the triangulation of a path in 2D. The resulting `offsets`
-    can be multiplied by a `width` scalar and be added to the resulting
-    `centers` to generate the vertices of the triangles for the triangulation,
-    i.e. `vertices = centers + width*offsets`. Using the `centers` and
-    `offsets` representation thus allows for the computed triangulation to be
-    independent of the line width.
+def _enclosing(
+    bbox0_topleft, bbox0_bottomright, bbox1_topleft, bbox1_bottomright
+):
+    """Return true if bbox0 encloses bbox1."""
+    return np.all(bbox0_topleft <= bbox1_topleft) and np.all(
+        bbox0_bottomright >= bbox1_bottomright
+    )
+
+
+def _indices(labels_array):
+    """Return csr_matrix where mat[i, j] is 1 iff labels_array[j] == i.
+
+    Uses linear indices if labels_array has more than one dimension.
+
+    See for discussion:
+    https://github.com/scikit-image/scikit-image/issues/4855
+    """
+    linear_labels = labels_array.reshape(-1)
+    idxs = np.arange(linear_labels.size)
+    label_idxs = sparse.coo_matrix(
+        (np.broadcast_to(1, idxs.size), (linear_labels, idxs))
+    ).tocsr()
+    return label_idxs
+
+
+def _get_idxs(label2idxs_csr: sparse.csr_matrix, i: int) -> npt.NDArray:
+    """Fast access to the nonzero indices corresponding to row i."""
+    u, v = label2idxs_csr.indptr[i : i + 2]
+    return label2idxs_csr.indices[u:v]
+
+
+def _remove_internal_edges(path, keep_holes=True):
+    """Remove holes from a path representing a polygon.
+
+    Holes are represented as vertices winding in the opposite direction to the
+    enclosing polygon. They depart and reenter the enclosing polygon from the
+    same vertex, so that the edge appears twice.
+
+    This function removes the edge connecting the perimiter to the hole, finds
+    the connected components among the remaining edges, and removes all
+    components except the one with the largest extent.
+    """
+    v, e = _normalize_vertices_and_edges(path, close=True)
+    n_edge = len(e)
+    if n_edge == 0:
+        # if there's not enough edges in the path, return fast.
+        # Note: this condition can probably be expanded: the smallest hole
+        # is 3 edges within 3 edges (a triangle within a triangle), so we
+        # should be able to use this exit with n_edge < 6. However, there may
+        # be some edge cases to consider when drawing partial polygons
+        return path
+    m = np.max(e)
+    csr = sparse.coo_matrix(
+        (np.ones(n_edge), tuple(e.T)), shape=(m + 1, m + 1)
+    ).tocsr()
+    n_comp, labels = sparse.csgraph.connected_components(csr, directed=False)
+    comp2idxs = _indices(labels)
+    idxs = [_get_idxs(comp2idxs, i) for i in range(n_comp)]
+    # having found the connected components, we make sure we sort the vertices
+    # in adjacent sequence.
+    # TODO: Check whether we can simplify this step.
+    #  This *might* be unnecessary work because the unique vertices might be
+    #  in the correct order anyway.
+    path_orders = [
+        sparse.csgraph.depth_first_order(
+            csr, idx[0], directed=False, return_predecessors=False
+        )
+        for idx in idxs
+    ]
+    paths = [v[path_order] for path_order in path_orders]
+    if not keep_holes:
+        # any holes will necessarily have a smaller span than the enclosing
+        # polygon, so it is sufficient to check the ptp (max-min) of each array
+        # along an arbitrary axis
+        paths = [max(paths, key=lambda p: np.ptp(p[:, 0]))]
+    return paths
+
+
+def _combine_meshes(meshes_list):
+    """Combine a list of (centers, offsets, triangles) meshes into one.
+
+    Meshes are generated as tuples of (centers, offsets, triangles), where the
+    triangles index into the centers and offsets arrays (see
+    :func:`generate_2D_edge_meshes`). To convert multiple instances into a
+    single mesh, the centers and offsets can simply be concatenated, but the
+    triangle indices must be incremented by the cumulative length of the
+    previous centers arrays.
+
+    Parameters
+    ----------
+    meshes_list : list of tuple of arrays
+        A list where each element is a tuple of (centers, offsets, triangles).
+        Centers is an Mx2 or Mx3 array, offsets is an Mx2 or Mx3 array (where
+        M is the number of vertices in the triangulation), and triangles is a
+        Px3 array of integers, where each integer is an index into the centers
+        array.
+
+    Returns
+    -------
+    centers : np.ndarray of float
+        Mx2 or Mx3 array of vertex coordinates.
+    offsets : np.ndarray of float
+        Mx2 or Mx3 array of offsets for edge width.
+    triangles : np.ndarray of int
+        Px3 array of indices into centers to form the triangles.
+    """
+    if len(meshes_list) == 1:
+        # nothing to do in this case!
+        return meshes_list[0]
+    centers_list, offsets_list, triangles_list = list(zip(*meshes_list))
+    # Prepend zero because np.cumsum is flawed. See:
+    # https://mail.python.org/archives/list/numpy-discussion@python.org/message/PCFRGU5B4OLYA7NQDWX3Q5Q2Y5IBGP65/
+    # and discussion in that thread and linked GitHub issues and threads.
+    # cumulative size offsets will be one too long but we don't care, zip will
+    # take care of it.
+    cumulative_size_offsets = np.cumsum([0] + [len(c) for c in centers_list])
+    triangles = np.concatenate(
+        [t + off for t, off in zip(triangles_list, cumulative_size_offsets)],
+        axis=0,
+    )
+    centers = np.concatenate(centers_list, axis=0)
+    offsets = np.concatenate(offsets_list, axis=0)
+    return centers, offsets, triangles
+
+
+def generate_2D_edge_meshes(
+    path, closed=False, limit=3, bevel=False, contiguous=False
+):
+    """Find the triangulation of a path in 2D.
+
+    The resulting `offsets` can be multiplied by a `width` scalar and be
+    added to the resulting `centers` to generate the vertices of the
+    triangles for the triangulation, i.e. `vertices = centers +
+    width*offsets`. Using the `centers` and `offsets` representation allows
+    for the computed triangulation to be independent of the line width.
 
     Parameters
     ----------
@@ -719,6 +963,10 @@ def generate_2D_edge_meshes(path, closed=False, limit=3, bevel=False):
     bevel : bool
         Bool which if True causes a bevel join to always be used. If False
         a bevel join will only be used when the miter limit is exceeded
+    contiguous : bool
+        Whether a (closed) path is guaranteed to be contiguous. Polygons may
+        have holes in them, in which case, the path of the contour and the
+        paths of any internal holes will not be contiguous.
 
     Returns
     -------
@@ -732,6 +980,16 @@ def generate_2D_edge_meshes(path, closed=False, limit=3, bevel=False):
         Px3 array of the indices of the vertices that will form the
         triangles of the triangulation
     """
+    if closed and not contiguous and len(path) > 2:
+        # polygon — might include holes, we remove internal edges
+        return _combine_meshes(
+            [
+                generate_2D_edge_meshes(
+                    p, closed=closed, limit=limit, bevel=bevel, contiguous=True
+                )
+                for p in _remove_internal_edges(path)
+            ]
+        )
 
     path = np.asarray(path, dtype=float)
 
