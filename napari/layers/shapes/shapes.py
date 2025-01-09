@@ -1,7 +1,8 @@
 import warnings
+from concurrent.futures import ProcessPoolExecutor
 from contextlib import contextmanager
 from copy import copy, deepcopy
-from itertools import cycle
+from itertools import cycle, repeat
 from typing import (
     Any,
     Callable,
@@ -80,6 +81,21 @@ from napari.utils.misc import ensure_iterable
 from napari.utils.translations import trans
 
 DEFAULT_COLOR_CYCLE = np.array([[1, 0, 1, 1], [0, 1, 0, 1]])
+
+
+def map_to_shape(v):
+    (d, st, ew, ec, fc, z), order, ndisplay = v
+    return (
+        shape_classes[ShapeType(st)](
+            d,
+            edge_width=ew,
+            z_index=z,
+            dims_order=order,
+            ndisplay=ndisplay,
+        ),
+        ec,
+        fc,
+    )
 
 
 class Shapes(Layer):
@@ -2314,24 +2330,35 @@ class Shapes(Layer):
 
     def _add_shapes_to_view(self, shape_inputs, data_view):
         """Build new shapes and add them to the _data_view"""
-
         shape_inputs = tuple(shape_inputs)
+        with ProcessPoolExecutor() as executor:
+            sh_inp = list(
+                executor.map(
+                    map_to_shape,
+                    zip(
+                        shape_inputs,
+                        repeat(self._slice_input.order),
+                        repeat(self._slice_input.ndisplay),
+                    ),
+                    chunksize=10,
+                )
+            )
 
         # build all shapes
-        sh_inp = tuple(
-            (
-                shape_classes[ShapeType(st)](
-                    d,
-                    edge_width=ew,
-                    z_index=z,
-                    dims_order=self._slice_input.order,
-                    ndisplay=self._slice_input.ndisplay,
-                ),
-                ec,
-                fc,
-            )
-            for d, st, ew, ec, fc, z in shape_inputs
-        )
+        # sh_inp = tuple(
+        #     (
+        #         shape_classes[ShapeType(st)](
+        #             d,
+        #             edge_width=ew,
+        #             z_index=z,
+        #             dims_order=self._slice_input.order,
+        #             ndisplay=self._slice_input.ndisplay,
+        #         ),
+        #         ec,
+        #         fc,
+        #     )
+        #     for d, st, ew, ec, fc, z in shape_inputs
+        # )
 
         shapes, edge_colors, face_colors = tuple(zip(*sh_inp))
 
