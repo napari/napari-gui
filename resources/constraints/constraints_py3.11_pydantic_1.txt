@@ -371,13 +371,13 @@ pyrect==0.2.0
     # via pygetwindow
 pyscreeze==1.0.1
     # via pyautogui
-pyside6==6.4.2
+pyside6==6.8.0.2
     # via
     #   -r napari_repo/resources/constraints/version_denylist.txt
     #   napari (napari_repo/pyproject.toml)
-pyside6-addons==6.4.2
+pyside6-addons==6.8.0.2
     # via pyside6
-pyside6-essentials==6.4.2
+pyside6-essentials==6.8.0.2
     # via
     #   pyside6
     #   pyside6-addons
@@ -461,7 +461,7 @@ scipy==1.15.0
     #   scikit-image
 shellingham==1.5.4
     # via typer
-shiboken6==6.4.2
+shiboken6==6.8.0.2
     # via
     #   pyside6
     #   pyside6-addons

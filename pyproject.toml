@@ -96,7 +96,7 @@ pyside2 = [
     "PySide2>=5.13.2,!=5.15.0 ; python_version < '3.11' and platform_machine != 'arm64'",
 ]
 pyside6_experimental = [
-    "PySide6 < 6.5 ; python_version < '3.12'"
+    "PySide6 >= 6.8"
 ]
 pyqt6 = [
     "PyQt6 > 6.5",
@@ -366,7 +366,8 @@ filterwarnings = [
   "ignore:__array__ implementation doesn't accept a copy keyword, so passing copy=False failed.",
   "ignore:pkg_resources is deprecated",
   "ignore:Deprecated call to `pkg_resources.declare_namespace",
-  "ignore:Use Group.create_array instead."
+  "ignore:Use Group.create_array instead.",
+  'ignore:.*QColor\.setNamedColor',  # the QColor.setNamedColor is deprecated in PyQt6.6, but the replacement function is available since PyQt6.4
 ]
 markers = [
     "examples: Test of examples",

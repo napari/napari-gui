@@ -201,7 +201,7 @@ class ShortcutEditor(QWidget):
 
         # If rebuilding the table, then need to disconnect the connection made
         # previously as well as clear the table contents.
-        with contextlib.suppress(TypeError, RuntimeError):
+        with contextlib.suppress(TypeError, RuntimeError, SystemError):
             self._table.cellChanged.disconnect(self._set_keybinding)
         self._table.clearContents()
 

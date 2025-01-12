@@ -282,6 +282,10 @@ def make_napari_viewer(
         'napari._qt.threads.status_checker.StatusChecker.start',
         _empty,
     )
+    monkeypatch.setattr(
+        'napari._qt.qt_main_window._QtMainWindow._save_current_window_settings',
+        _empty,
+    )
 
     if 'enable_console' not in request.keywords:
 
@@ -325,13 +329,7 @@ def make_napari_viewer(
 
     # close viewers, but don't saving window settings while closing
     for viewer in viewers:
-        if hasattr(viewer.window, '_qt_window'):
-            with patch.object(
-                viewer.window._qt_window, '_save_current_window_settings'
-            ):
-                viewer.close()
-        else:
-            viewer.close()
+        viewer.close()
 
     if GCPASS % 50 == 0 or len(QtViewer._instances):
         gc.collect()
