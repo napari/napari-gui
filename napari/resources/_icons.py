@@ -3,7 +3,6 @@ from collections.abc import Iterable, Iterator
 from functools import lru_cache
 from itertools import product
 from pathlib import Path
-from typing import Optional, Union
 
 from napari.utils._appdirs import user_cache_dir
 from napari.utils.translations import trans
@@ -45,7 +44,7 @@ def get_raw_svg(path: str) -> str:
 
 @lru_cache
 def get_colorized_svg(
-    path_or_xml: Union[str, Path], color: Optional[str] = None, opacity=1.0
+    path_or_xml: str | Path, color: str | None = None, opacity=1.0
 ) -> str:
     """Return a colorized version of the SVG XML at ``path``.
 
@@ -73,10 +72,10 @@ def get_colorized_svg(
 
 
 def generate_colorized_svgs(
-    svg_paths: Iterable[Union[str, Path]],
-    colors: Iterable[Union[str, tuple[str, str]]],
+    svg_paths: Iterable[str | Path],
+    colors: Iterable[str | tuple[str, str]],
     opacities: Iterable[float] = (1.0,),
-    theme_override: Optional[dict[str, str]] = None,
+    theme_override: dict[str, str] | None = None,
 ) -> Iterator[tuple[str, str]]:
     """Helper function to generate colorized SVGs.
 
@@ -137,11 +136,11 @@ def generate_colorized_svgs(
 
 
 def write_colorized_svgs(
-    dest: Union[str, Path],
-    svg_paths: Iterable[Union[str, Path]],
-    colors: Iterable[Union[str, tuple[str, str]]],
+    dest: str | Path,
+    svg_paths: Iterable[str | Path],
+    colors: Iterable[str | tuple[str, str]],
     opacities: Iterable[float] = (1.0,),
-    theme_override: Optional[dict[str, str]] = None,
+    theme_override: dict[str, str] | None = None,
 ):
     dest = Path(dest)
     dest.mkdir(parents=True, exist_ok=True)

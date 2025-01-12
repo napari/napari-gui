@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -119,7 +119,7 @@ def calculate_bounds_from_contained_points(
 
 def get_nearby_handle(
     position: np.ndarray, handle_coordinates: np.ndarray
-) -> Optional[InteractionBoxHandle]:
+) -> InteractionBoxHandle | None:
     """
     Get the InteractionBoxHandle close to the given position, within tolerance.
 

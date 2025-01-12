@@ -2513,7 +2513,9 @@ def test_point_slice_request_response(dims_indices, target_indices):
     response = request()
 
     assert len(response.indices) == len(target_indices)
-    assert all(a == b for a, b in zip(response.indices, target_indices))
+    assert all(
+        a == b for a, b in zip(response.indices, target_indices, strict=False)
+    )
 
 
 def test_editable_and_visible_are_independent():

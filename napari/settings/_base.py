@@ -6,7 +6,7 @@ import os
 from collections.abc import Mapping, Sequence
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, cast
+from typing import TYPE_CHECKING, cast
 from warnings import warn
 
 from napari._pydantic_compat import (
@@ -94,7 +94,7 @@ class EventedConfigFileSettings(EventedSettings, PydanticYamlMixin):
     EventedSettings.
     """
 
-    _config_path: Optional[Path] = None
+    _config_path: Path | None = None
     _save_on_change: bool = True
     # this dict stores the data that came specifically from the config file.
     # it's populated in `config_file_settings_source` and
@@ -131,8 +131,8 @@ class EventedConfigFileSettings(EventedSettings, PydanticYamlMixin):
     def dict(
         self,
         *,
-        include: Union[AbstractSetIntStr, MappingIntStrAny] = None,  # type: ignore
-        exclude: Union[AbstractSetIntStr, MappingIntStrAny] = None,  # type: ignore
+        include: AbstractSetIntStr | MappingIntStrAny = None,  # type: ignore
+        exclude: AbstractSetIntStr | MappingIntStrAny = None,  # type: ignore
         by_alias: bool = False,
         exclude_unset: bool = False,
         exclude_defaults: bool = False,
@@ -168,7 +168,7 @@ class EventedConfigFileSettings(EventedSettings, PydanticYamlMixin):
         _remove_empty_dicts(data)
         return data
 
-    def save(self, path: Union[str, Path, None] = None, **dict_kwargs):
+    def save(self, path: str | Path | None = None, **dict_kwargs):
         """Save current settings to path.
 
         By default, this will exclude settings values that match the default
@@ -296,7 +296,7 @@ def nested_env_settings(
         d = super_eset(settings)
 
         if settings.__config__.case_sensitive:
-            env_vars: Mapping[str, Optional[str]] = os.environ
+            env_vars: Mapping[str, str | None] = os.environ
         else:
             env_vars = {k.lower(): v for k, v in os.environ.items()}
 
@@ -469,7 +469,7 @@ def config_file_settings_source(
     return data
 
 
-def _remove_bad_keys(data: dict, keys: list[tuple[Union[int, str], ...]]):
+def _remove_bad_keys(data: dict, keys: list[tuple[int | str, ...]]):
     """Remove list of keys (as string tuples) from dict (in place).
 
     Parameters

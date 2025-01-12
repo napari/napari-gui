@@ -1,9 +1,7 @@
 import logging
-from collections.abc import Iterable, MutableSequence, Sequence
+from collections.abc import Callable, Iterable, MutableSequence, Sequence
 from typing import (
     Any,
-    Callable,
-    Optional,
     TypeVar,
     Union,
     overload,
@@ -47,8 +45,8 @@ class TypedMutableSequence(MutableSequence[_T]):
         self,
         data: Iterable[_T] = (),
         *,
-        basetype: Union[type[_T], Sequence[type[_T]]] = (),
-        lookup: Optional[dict[type[_L], Callable[[_T], Union[_T, _L]]]] = None,
+        basetype: type[_T] | Sequence[type[_T]] = (),
+        lookup: dict[type[_L], Callable[[_T], _T | _L]] | None = None,
     ) -> None:
         if lookup is None:
             lookup = {}
@@ -195,9 +193,7 @@ class TypedMutableSequence(MutableSequence[_T]):
         """Add other to self in place (self += other)."""
         return other + list(self)
 
-    def index(
-        self, value: _L, start: int = 0, stop: Optional[int] = None
-    ) -> int:
+    def index(self, value: _L, start: int = 0, stop: int | None = None) -> int:
         """Return first index of value.
 
         Parameters
@@ -242,7 +238,7 @@ class TypedMutableSequence(MutableSequence[_T]):
         )
 
     def _iter_indices(
-        self, start: int = 0, stop: Optional[int] = None
+        self, start: int = 0, stop: int | None = None
     ) -> Iterable[int]:
         """Iter indices from start to stop.
 

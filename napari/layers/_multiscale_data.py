@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Union
 
 import numpy as np
 
@@ -70,7 +69,7 @@ class MultiScaleData(Sequence[LayerDataProtocol]):
         return tuple(im.shape for im in self._data)
 
     def __getitem__(  # type: ignore [override]
-        self, key: Union[int, tuple[slice, ...]]
+        self, key: int | tuple[slice, ...]
     ) -> LayerDataProtocol:
         """Multiscale indexing."""
         return self._data[key]

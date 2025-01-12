@@ -5,7 +5,7 @@ import typing
 import warnings
 from collections.abc import Iterable
 from functools import cached_property
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -161,7 +161,7 @@ class LayerList(SelectableEventedList[Layer]):
         return values
 
     @typing.overload
-    def __getitem__(self, item: Union[int, str]) -> Layer: ...
+    def __getitem__(self, item: int | str) -> Layer: ...
 
     @typing.overload
     def __getitem__(self, item: slice) -> Self: ...
@@ -357,7 +357,8 @@ class LayerList(SelectableEventedList[Layer]):
         """Get ranges for Dims.range in world coordinates."""
         ext = self.extent
         return tuple(
-            RangeTuple(*x) for x in zip(ext.world[0], ext.world[1], ext.step)
+            RangeTuple(*x)
+            for x in zip(ext.world[0], ext.world[1], ext.step, strict=False)
         )
 
     @property
@@ -375,7 +376,7 @@ class LayerList(SelectableEventedList[Layer]):
     def _link_layers(
         self,
         method: str,
-        layers: Optional[Iterable[Union[str, Layer]]] = None,
+        layers: Iterable[str | Layer] | None = None,
         attributes: Iterable[str] = (),
     ):
         # adding this method here allows us to emit an event when
@@ -392,14 +393,14 @@ class LayerList(SelectableEventedList[Layer]):
 
     def link_layers(
         self,
-        layers: Optional[Iterable[Union[str, Layer]]] = None,
+        layers: Iterable[str | Layer] | None = None,
         attributes: Iterable[str] = (),
     ):
         return self._link_layers('link_layers', layers, attributes)
 
     def unlink_layers(
         self,
-        layers: Optional[Iterable[Union[str, Layer]]] = None,
+        layers: Iterable[str | Layer] | None = None,
         attributes: Iterable[str] = (),
     ):
         return self._link_layers('unlink_layers', layers, attributes)
@@ -409,8 +410,8 @@ class LayerList(SelectableEventedList[Layer]):
         path: str,
         *,
         selected: bool = False,
-        plugin: Optional[str] = None,
-        _writer: Optional[WriterContribution] = None,
+        plugin: str | None = None,
+        _writer: WriterContribution | None = None,
     ) -> list[str]:
         """Save all or only selected layers to a path using writer plugins.
 

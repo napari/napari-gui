@@ -34,7 +34,7 @@ def test_layer_save(tmp_path: Path, some_layer: 'layers.Layer', use_ext: bool):
     [(read_data, *rest)] = reader(str(path_with_ext))
 
     if isinstance(some_layer.data, list):
-        for d in zip(read_data, some_layer.data):
+        for d in zip(read_data, some_layer.data, strict=False):
             np.testing.assert_allclose(*d)
     else:
         np.testing.assert_allclose(read_data, some_layer.data)

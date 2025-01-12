@@ -67,7 +67,9 @@ def test_docstring(layer):
     else:
         try:
             assert len(method_params) == len(layer_params)
-            for method_param, layer_param in zip(method_params, layer_params):
+            for method_param, layer_param in zip(
+                method_params, layer_params, strict=False
+            ):
                 m_name, m_type, m_description = method_param
                 l_name, l_type, l_description = layer_param
 

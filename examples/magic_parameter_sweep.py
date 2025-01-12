@@ -10,7 +10,6 @@ It demonstrates:
 
 .. tags:: gui
 """
-import typing
 from typing import Annotated
 
 import skimage.data
@@ -34,7 +33,7 @@ def gaussian_blur(
     layer: 'napari.layers.Image',
     sigma: Annotated[float, {'widget_type': 'FloatSlider', 'max': 6}] = 1.0,
     mode: Annotated[str, {'choices': ['reflect', 'constant', 'nearest', 'mirror', 'wrap']}]='nearest',
-) -> 'typing.Optional[napari.types.ImageData]':
+) -> 'napari.types.ImageData | None':
     """Apply a gaussian blur to ``layer``."""
     if layer:
         return skimage.filters.gaussian(layer.data, sigma=sigma, mode=mode)

@@ -2,7 +2,7 @@ import csv
 import os
 import shutil
 from tempfile import TemporaryDirectory
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 
@@ -15,8 +15,8 @@ if TYPE_CHECKING:
 
 def write_csv(
     filename: str,
-    data: Union[list, np.ndarray],
-    column_names: Optional[list[str]] = None,
+    data: list | np.ndarray,
+    column_names: list[str] | None = None,
 ):
     """Write a csv file.
 
@@ -95,7 +95,7 @@ def imsave_extensions() -> tuple[str, ...]:
     )
 
 
-def napari_write_image(path: str, data: Any, meta: dict) -> Optional[str]:
+def napari_write_image(path: str, data: Any, meta: dict) -> str | None:
     """Our internal fallback image writer at the end of the plugin chain.
 
     Parameters
@@ -127,7 +127,7 @@ def napari_write_image(path: str, data: Any, meta: dict) -> Optional[str]:
     return None
 
 
-def napari_write_labels(path: str, data: Any, meta: dict) -> Optional[str]:
+def napari_write_labels(path: str, data: Any, meta: dict) -> str | None:
     """Our internal fallback labels writer at the end of the plugin chain.
 
     Parameters
@@ -151,7 +151,7 @@ def napari_write_labels(path: str, data: Any, meta: dict) -> Optional[str]:
     return napari_write_image(path, np.asarray(data, dtype=dtype), meta)
 
 
-def napari_write_points(path: str, data: Any, meta: dict) -> Optional[str]:
+def napari_write_points(path: str, data: Any, meta: dict) -> str | None:
     """Our internal fallback points writer at the end of the plugin chain.
 
     Append ``.csv`` extension to the filename if it is not already there.
@@ -200,7 +200,7 @@ def napari_write_points(path: str, data: Any, meta: dict) -> Optional[str]:
     return path
 
 
-def napari_write_shapes(path: str, data: Any, meta: dict) -> Optional[str]:
+def napari_write_shapes(path: str, data: Any, meta: dict) -> str | None:
     """Our internal fallback points writer at the end of the plugin chain.
 
     Append ``.csv`` extension to the filename if it is not already there.

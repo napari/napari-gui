@@ -1,6 +1,6 @@
 from copy import deepcopy
 from dataclasses import dataclass
-from typing import Any, Optional, Union
+from typing import Any
 
 import numpy as np
 
@@ -42,7 +42,7 @@ class ColorProperties:
 
     name: str
     values: np.ndarray
-    current_value: Optional[Any] = None
+    current_value: Any | None = None
 
     @classmethod
     def __get_validators__(cls):
@@ -143,11 +143,11 @@ class ColorManager(EventedModel):
     """
 
     # fields
-    current_color: Optional[Array[float, (4,)]] = None
+    current_color: Array[float, (4,)] | None = None
     color_mode: ColorMode = ColorMode.DIRECT
-    color_properties: Optional[ColorProperties] = None
+    color_properties: ColorProperties | None = None
     continuous_colormap: Colormap = ensure_colormap('viridis')
-    contrast_limits: Optional[tuple[float, float]] = None
+    contrast_limits: tuple[float, float] | None = None
     categorical_colormap: CategoricalColormap = CategoricalColormap.from_array(
         [0, 0, 0, 1]
     )
@@ -282,7 +282,7 @@ class ColorManager(EventedModel):
 
     def _add(
         self,
-        color: Optional[ColorType] = None,
+        color: ColorType | None = None,
         n_colors: int = 1,
         update_clims: bool = False,
     ):
@@ -329,7 +329,7 @@ class ColorManager(EventedModel):
             if update_clims and self.color_mode == ColorMode.COLORMAP:
                 self.contrast_limits = None
 
-    def _remove(self, indices_to_remove: Union[set, list, np.ndarray]):
+    def _remove(self, indices_to_remove: set | list | np.ndarray):
         """Remove the indicated color elements
         Parameters
         ----------
@@ -422,7 +422,7 @@ class ColorManager(EventedModel):
                     )
 
     def _update_current_color(
-        self, current_color: np.ndarray, update_indices: Optional[list] = None
+        self, current_color: np.ndarray, update_indices: list | None = None
     ):
         """Update the current color and update the colors if requested.
 
@@ -450,16 +450,17 @@ class ColorManager(EventedModel):
     @classmethod
     def _from_layer_kwargs(
         cls,
-        colors: Union[dict, str, np.ndarray],
+        colors: dict | str | np.ndarray,
         properties: dict[str, np.ndarray],
-        n_colors: Optional[int] = None,
-        continuous_colormap: Optional[Union[str, Colormap]] = None,
-        contrast_limits: Optional[tuple[float, float]] = None,
-        categorical_colormap: Optional[
-            Union[CategoricalColormap, list, np.ndarray]
-        ] = None,
-        color_mode: Optional[Union[ColorMode, str]] = None,
-        current_color: Optional[np.ndarray] = None,
+        n_colors: int | None = None,
+        continuous_colormap: str | Colormap | None = None,
+        contrast_limits: tuple[float, float] | None = None,
+        categorical_colormap: CategoricalColormap
+        | list
+        | np.ndarray
+        | None = None,
+        color_mode: ColorMode | str | None = None,
+        current_color: np.ndarray | None = None,
         default_color_cycle: ColorType = None,
     ):
         """Initialize a ColorManager object from layer kwargs. This is a convenience

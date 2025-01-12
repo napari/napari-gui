@@ -3,11 +3,10 @@
 import inspect
 import re
 from collections import ChainMap, ChainMap as ChainMapType
+from collections.abc import Callable
 from types import FrameType, TracebackType
 from typing import (
     Any,
-    Callable,
-    Optional,
 )
 
 from napari.utils.misc import ROOT_DIR, formatdoc
@@ -141,15 +140,15 @@ class CallerFrame:
 
     def __exit__(
         self,
-        exc_type: Optional[type[BaseException]],
-        exc_value: Optional[BaseException],
-        traceback: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
     ) -> None:
         del self.namespace
         del self.names
 
 
-def magic_name(value: Any, *, path_prefix: str = ROOT_DIR) -> Optional[str]:
+def magic_name(value: Any, *, path_prefix: str = ROOT_DIR) -> str | None:
     """Fetch the name of the variable with the given value passed to the calling function.
 
     Parameters

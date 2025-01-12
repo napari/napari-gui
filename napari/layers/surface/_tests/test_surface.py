@@ -24,7 +24,12 @@ def test_random_surface():
     data = (vertices, faces, values)
     layer = Surface(data)
     assert layer.ndim == 2
-    assert np.all([np.array_equal(ld, d) for ld, d in zip(layer.data, data)])
+    assert np.all(
+        [
+            np.array_equal(ld, d)
+            for ld, d in zip(layer.data, data, strict=False)
+        ]
+    )
     assert np.array_equal(layer.vertices, vertices)
     assert np.array_equal(layer.faces, faces)
     assert np.array_equal(layer.vertex_values, values)
@@ -85,7 +90,12 @@ def test_random_surface_no_values():
     data = (vertices, faces)
     layer = Surface(data)
     assert layer.ndim == 2
-    assert np.all([np.array_equal(ld, d) for ld, d in zip(layer.data, data)])
+    assert np.all(
+        [
+            np.array_equal(ld, d)
+            for ld, d in zip(layer.data, data, strict=False)
+        ]
+    )
     assert np.array_equal(layer.vertices, vertices)
     assert np.array_equal(layer.faces, faces)
     assert np.array_equal(layer.vertex_values, np.ones(len(vertices)))
@@ -115,7 +125,12 @@ def test_random_3D_surface():
     data = (vertices, faces, values)
     layer = Surface(data)
     assert layer.ndim == 3
-    assert np.all([np.array_equal(ld, d) for ld, d in zip(layer.data, data)])
+    assert np.all(
+        [
+            np.array_equal(ld, d)
+            for ld, d in zip(layer.data, data, strict=False)
+        ]
+    )
     assert layer._data_view.shape[1] == 2
     assert layer._view_vertex_values.ndim == 1
 
@@ -133,7 +148,12 @@ def test_random_4D_surface():
     data = (vertices, faces, values)
     layer = Surface(data)
     assert layer.ndim == 4
-    assert np.all([np.array_equal(ld, d) for ld, d in zip(layer.data, data)])
+    assert np.all(
+        [
+            np.array_equal(ld, d)
+            for ld, d in zip(layer.data, data, strict=False)
+        ]
+    )
     assert layer._data_view.shape[1] == 2
     assert layer._view_vertex_values.ndim == 1
 
@@ -151,7 +171,12 @@ def test_random_3D_timeseries_surface():
     data = (vertices, faces, values)
     layer = Surface(data)
     assert layer.ndim == 4
-    assert np.all([np.array_equal(ld, d) for ld, d in zip(layer.data, data)])
+    assert np.all(
+        [
+            np.array_equal(ld, d)
+            for ld, d in zip(layer.data, data, strict=False)
+        ]
+    )
     assert layer._data_view.shape[1] == 2
     assert layer._view_vertex_values.ndim == 1
     assert layer.extent.data[1][0] == 21
@@ -176,7 +201,12 @@ def test_random_3D_multitimeseries_surface():
     data = (vertices, faces, values)
     layer = Surface(data)
     assert layer.ndim == 5
-    assert np.all([np.array_equal(ld, d) for ld, d in zip(layer.data, data)])
+    assert np.all(
+        [
+            np.array_equal(ld, d)
+            for ld, d in zip(layer.data, data, strict=False)
+        ]
+    )
     assert layer._data_view.shape[1] == 2
     assert layer._view_vertex_values.ndim == 1
     assert layer.extent.data[1][0] == 15
@@ -202,7 +232,12 @@ def test_changing_surface():
     data = (vertices, faces, values)
     layer.data = data
     assert layer.ndim == 3
-    assert np.all([np.array_equal(ld, d) for ld, d in zip(layer.data, data)])
+    assert np.all(
+        [
+            np.array_equal(ld, d)
+            for ld, d in zip(layer.data, data, strict=False)
+        ]
+    )
     assert layer._data_view.shape[1] == 2
     assert layer._view_vertex_values.ndim == 1
 

@@ -15,8 +15,6 @@ from napari.utils.migrations import _DeprecatingDict
 from napari.utils.misc import all_subclasses
 
 if TYPE_CHECKING:
-    import typing
-
     import napari.types
 
 try:
@@ -65,7 +63,7 @@ def test_add_layer_data_to_viewer_optional(make_napari_viewer):
     viewer = make_napari_viewer()
 
     @magicgui
-    def func_optional(a: bool) -> 'typing.Optional[napari.types.ImageData]':
+    def func_optional(a: bool) -> 'napari.types.ImageData | None':
         if a:
             return np.zeros((10, 10))
         return None

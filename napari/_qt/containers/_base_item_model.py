@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import MutableSequence
-from typing import TYPE_CHECKING, Any, Generic, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from qtpy.QtCore import QAbstractItemModel, QModelIndex, Qt
 
@@ -10,8 +10,6 @@ from napari.utils.events.containers import SelectableEventedList
 from napari.utils.translations import trans
 
 if TYPE_CHECKING:
-    from typing import Optional
-
     from qtpy.QtWidgets import QWidget  # type: ignore[attr-defined]
 
 
@@ -79,7 +77,7 @@ class _BaseEventedItemModel(QAbstractItemModel, Generic[ItemType]):
     def __init__(
         self,
         root: SelectableEventedList[ItemType],
-        parent: Optional[QWidget] = None,
+        parent: QWidget | None = None,
     ) -> None:
         super().__init__(parent=parent)
         self.setRoot(root)
@@ -136,7 +134,7 @@ class _BaseEventedItemModel(QAbstractItemModel, Generic[ItemType]):
         """
         return 1
 
-    def rowCount(self, parent: Optional[QModelIndex] = None) -> int:
+    def rowCount(self, parent: QModelIndex | None = None) -> int:
         """Returns the number of rows under the given parent.
 
         When the parent is valid it means that rowCount is returning the number
@@ -150,7 +148,7 @@ class _BaseEventedItemModel(QAbstractItemModel, Generic[ItemType]):
             return 0
 
     def index(
-        self, row: int, column: int = 0, parent: Optional[QModelIndex] = None
+        self, row: int, column: int = 0, parent: QModelIndex | None = None
     ) -> QModelIndex:
         """Return a QModelIndex for item at `row`, `column` and `parent`."""
 
@@ -224,7 +222,7 @@ class _BaseEventedItemModel(QAbstractItemModel, Generic[ItemType]):
         self._root.events.connect(self._process_event)
 
     def _split_nested_index(
-        self, nested_index: Union[int, tuple[int, ...]]
+        self, nested_index: int | tuple[int, ...]
     ) -> tuple[QModelIndex, int]:
         """Return (parent_index, row) for a given index."""
         if isinstance(nested_index, int):

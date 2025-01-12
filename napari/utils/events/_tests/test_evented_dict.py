@@ -45,7 +45,9 @@ def test_dict_interface_parity(test_dict, regular_dict, meth):
     else:
         test_dict_method(*args)  # smoke test
 
-    for c, expect in zip(test_dict.events.call_args_list, expected):
+    for c, expect in zip(
+        test_dict.events.call_args_list, expected, strict=False
+    ):
         event = c.args[0]
         assert event.type == expect
 
@@ -84,7 +86,7 @@ def test_child_events():
         ('added', 'A', e_obj),  # after b was added into root
         ('test', 'A', 'hi'),  # when e_obj emitted an event called "test"
     ]
-    for o, e in zip(obs, expected):
+    for o, e in zip(obs, expected, strict=False):
         assert o == e
 
 

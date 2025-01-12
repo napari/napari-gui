@@ -1,5 +1,3 @@
-from typing import Optional
-
 import numpy as np
 from qtpy.QtCore import QSize, Qt, Signal
 from qtpy.QtGui import QColor, QIntValidator, QPainter, QPainterPath, QPen
@@ -31,7 +29,7 @@ class QtStar(QFrame):
     def __init__(
         self,
         parent: QWidget = None,
-        value: Optional[int] = None,
+        value: int | None = None,
     ) -> None:
         super().__init__(parent)
         self._value = value
@@ -316,7 +314,7 @@ class QtHighlightPreviewWidget(QWidget):
         self,
         parent: QWidget = None,
         description: str = '',
-        value: Optional[dict] = None,
+        value: dict | None = None,
         min_value: int = 1,
         max_value: int = 10,
         unit: str = 'px',

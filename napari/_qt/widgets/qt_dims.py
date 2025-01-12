@@ -1,5 +1,4 @@
 import warnings
-from typing import Optional
 
 import numpy as np
 from qtpy.QtCore import Slot
@@ -243,9 +242,9 @@ class QtDims(QWidget):
     def play(
         self,
         axis: int = 0,
-        fps: Optional[float] = None,
-        loop_mode: Optional[str] = None,
-        frame_range: Optional[tuple[int, int]] = None,
+        fps: float | None = None,
+        loop_mode: str | None = None,
+        frame_range: tuple[int, int] | None = None,
     ):
         """Animate (play) axis.
 

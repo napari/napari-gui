@@ -1,7 +1,6 @@
 from typing import (
     Any,
     Literal,
-    Optional,
     Protocol,
     Union,
     runtime_checkable,
@@ -191,7 +190,7 @@ class QuantitativeColorEncoding(_DerivedStyleEncoding[ColorValue, ColorArray]):
     )
     feature: str
     colormap: Colormap
-    contrast_limits: Optional[tuple[float, float]] = None
+    contrast_limits: tuple[float, float] | None = None
     fallback: ColorValue = Field(default_factory=lambda: DEFAULT_COLOR)
 
     def __call__(self, features: Any) -> ColorArray:
@@ -210,7 +209,7 @@ class QuantitativeColorEncoding(_DerivedStyleEncoding[ColorValue, ColorArray]):
     @validator('contrast_limits', pre=True, always=True, allow_reuse=True)
     def _check_contrast_limits(
         cls, contrast_limits
-    ) -> Optional[tuple[float, float]]:
+    ) -> tuple[float, float] | None:
         if (contrast_limits is not None) and (
             contrast_limits[0] >= contrast_limits[1]
         ):
@@ -225,7 +224,7 @@ class QuantitativeColorEncoding(_DerivedStyleEncoding[ColorValue, ColorArray]):
 
 def _calculate_contrast_limits(
     values: np.ndarray,
-) -> Optional[tuple[float, float]]:
+) -> tuple[float, float] | None:
     contrast_limits = None
     if values.size > 0:
         min_value = np.min(values)

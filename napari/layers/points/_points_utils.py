@@ -1,5 +1,4 @@
 from collections.abc import Sequence
-from typing import Optional, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -215,7 +214,7 @@ def points_in_box(
 
 
 def fix_data_points(
-    points: Optional[np.ndarray], ndim: Optional[int]
+    points: np.ndarray | None, ndim: int | None
 ) -> tuple[np.ndarray, int]:
     """
     Ensure that points array is 2d and have second dimension of size ndim (default 2 for empty arrays)
@@ -257,7 +256,7 @@ def fix_data_points(
     return points, ndim
 
 
-def symbol_conversion(symbol: Union[str, Symbol]) -> Symbol:
+def symbol_conversion(symbol: str | Symbol) -> Symbol:
     """
     Convert a string or Symbol to a Symbol instance.
     """
@@ -266,7 +265,7 @@ def symbol_conversion(symbol: Union[str, Symbol]) -> Symbol:
     return Symbol(symbol)
 
 
-def fast_dict_get(symbols: Union[np.ndarray, list], d: dict) -> np.ndarray:
+def fast_dict_get(symbols: np.ndarray | list, d: dict) -> np.ndarray:
     """
     Get the values from a dictionary using a list of keys.
     """
@@ -276,7 +275,7 @@ def fast_dict_get(symbols: Union[np.ndarray, list], d: dict) -> np.ndarray:
 
 
 def coerce_symbols(
-    symbol: Union[str, Symbol, Sequence[Union[str, Symbol]]],
+    symbol: str | Symbol | Sequence[str | Symbol],
 ) -> np.ndarray:
     """
     Parse an array of symbols and convert it to the correct strings.

@@ -4,7 +4,6 @@ File with things that are useful for testing, but not to be fixtures
 
 import inspect
 from dataclasses import dataclass, field
-from typing import Optional, Union
 
 import numpy as np
 from docstring_parser import parse
@@ -19,18 +18,18 @@ class MouseEvent:
     type: str
     is_dragging: bool = False
     modifiers: list[str] = field(default_factory=list)
-    position: Union[tuple[int, int], tuple[int, int, int]] = (
+    position: tuple[int, int] | tuple[int, int, int] = (
         0,
         0,
     )  # world coords
     pos: np.ndarray = field(
         default_factory=lambda: np.zeros(2)
     )  # canvas coords
-    view_direction: Optional[list[float]] = None
-    up_direction: Optional[list[float]] = None
+    view_direction: list[float] | None = None
+    up_direction: list[float] | None = None
     dims_displayed: list[int] = field(default_factory=lambda: [0, 1])
-    delta: Optional[tuple[float, float]] = None
-    native: Optional[bool] = None
+    delta: tuple[float, float] | None = None
+    native: bool | None = None
 
 
 def read_only_mouse_event(*args, **kwargs):
@@ -53,7 +52,7 @@ def validate_all_params_in_docstring(func):
     assert set(signature.parameters.keys()) == {
         x.arg_name for x in params
     }, 'Parameters in signature and docstring do not match'
-    for sig, doc in zip(signature.parameters.values(), params):
+    for sig, doc in zip(signature.parameters.values(), params, strict=False):
         assert (
             sig.name == doc.arg_name
         ), 'Parameters in signature and docstring are not in the same order.'

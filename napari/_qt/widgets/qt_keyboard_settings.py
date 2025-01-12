@@ -2,7 +2,6 @@ import contextlib
 import itertools
 import sys
 from collections import OrderedDict
-from typing import Optional
 
 from app_model.backends.qt import (
     qkeysequence2modelkeybinding,
@@ -52,7 +51,7 @@ class ShortcutEditor(QWidget):
         self,
         parent: QWidget = None,
         description: str = '',
-        value: Optional[dict] = None,
+        value: dict | None = None,
     ) -> None:
         super().__init__(parent=parent)
 

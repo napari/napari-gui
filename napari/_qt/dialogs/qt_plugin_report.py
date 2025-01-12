@@ -1,7 +1,6 @@
 """Provides a QtPluginErrReporter that allows the user report plugin errors."""
 
 import contextlib
-from typing import Optional
 
 from napari_plugin_engine import standard_metadata
 from qtpy.QtCore import Qt
@@ -58,8 +57,8 @@ class QtPluginErrReporter(QDialog):
     def __init__(
         self,
         *,
-        parent: Optional[QWidget] = None,
-        initial_plugin: Optional[str] = None,
+        parent: QWidget | None = None,
+        initial_plugin: str | None = None,
     ) -> None:
         super().__init__(parent)
         from napari.plugins import plugin_manager

@@ -10,8 +10,6 @@ from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
-    Optional,
-    Union,
     cast,
 )
 
@@ -189,7 +187,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         default_factory=LayerList, allow_mutation=False
     )  # Need to create custom JSON encoder for layer!
     help: str = ''
-    status: Union[str, dict] = 'Ready'
+    status: str | dict = 'Ready'
     tooltip: Tooltip = Field(default_factory=Tooltip, allow_mutation=False)
     theme: str = Field(default_factory=_current_theme)
     title: str = 'napari'
@@ -402,7 +400,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
             -self.dims.ndisplay :
         ]
         center = cast(
-            Union[tuple[float, float, float], tuple[float, float]],
+            tuple[float, float, float] | tuple[float, float],
             tuple(
                 [0.0] * (self.dims.ndisplay - len(center_array))
                 + list(center_array)
@@ -452,7 +450,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         corner = extent[0]
         shape = [
             np.round(s / sc).astype('int') + 1
-            for s, sc in zip(scene_size, scale)
+            for s, sc in zip(scene_size, scale, strict=False)
         ]
         dtype_str = get_settings().application.new_labels_dtype
         empty_labels = np.zeros(shape, dtype=dtype_str)
@@ -565,7 +563,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
 
     def _calc_status_from_cursor(
         self,
-    ) -> Optional[tuple[Union[str, Dict], str]]:
+    ) -> tuple[str | Dict, str] | None:
         if not self.mouse_over_canvas:
             return None
         active = self.layers.selection.active
@@ -802,7 +800,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         translate=None,
         units=None,
         visible=True,
-    ) -> Union[Image, list[Image]]:
+    ) -> Image | list[Image]:
         """Add one or more Image layers to the layer list.
 
         Parameters
@@ -1019,7 +1017,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         self,
         plugin: str,
         sample: str,
-        reader_plugin: Optional[str] = None,
+        reader_plugin: str | None = None,
         **kwargs,
     ) -> list[Layer]:
         """Open `sample` from `plugin` and add it to the viewer.
@@ -1054,7 +1052,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         from napari.plugins import _npe2, plugin_manager
 
         plugin_spec_reader = None
-        data: Union[None, SampleDataCreator, SampleData]
+        data: None | SampleDataCreator | SampleData
         # try with npe2
         data, available = _npe2.get_sample_data(plugin, sample)
 
@@ -1142,9 +1140,9 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         self,
         path: PathOrPaths,
         *,
-        stack: Union[bool, list[list[PathLike]]] = False,
-        plugin: Optional[str] = 'napari',
-        layer_type: Optional[LayerTypeName] = None,
+        stack: bool | list[list[PathLike]] = False,
+        plugin: str | None = 'napari',
+        layer_type: LayerTypeName | None = None,
         **kwargs,
     ) -> list[Layer]:
         """Open a path or list of paths with plugins, and add layers to viewer.
@@ -1244,9 +1242,9 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
 
     def _open_or_raise_error(
         self,
-        paths: list[Union[Path, str]],
-        kwargs: Optional[Dict[str, Any]] = None,
-        layer_type: Optional[LayerTypeName] = None,
+        paths: list[Path | str],
+        kwargs: Dict[str, Any] | None = None,
+        layer_type: LayerTypeName | None = None,
         stack: bool = False,
     ):
         """Open paths if plugin choice is unambiguous, raising any errors.
@@ -1373,9 +1371,9 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         paths: list[PathLike],
         *,
         stack: bool,
-        kwargs: Optional[Dict] = None,
-        plugin: Optional[str] = None,
-        layer_type: Optional[LayerTypeName] = None,
+        kwargs: Dict | None = None,
+        plugin: str | None = None,
+        layer_type: LayerTypeName | None = None,
     ) -> list[Layer]:
         """Load a path or a list of paths into the viewer using plugins.
 
@@ -1446,7 +1444,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         # add each layer to the viewer
         added: list[Layer] = []  # for layers that get added
         plugin = hookimpl.plugin_name if hookimpl else None
-        for data, filename in zip(layer_data, filenames):
+        for data, filename in zip(layer_data, filenames, strict=False):
             basename, _ext = os.path.splitext(os.path.basename(filename))
             # actually add the layer
             if isinstance(data, Layer):
@@ -1465,8 +1463,8 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
     def _add_layer_from_data(
         self,
         data,
-        meta: Optional[Mapping[str, Any]] = None,
-        layer_type: Optional[str] = None,
+        meta: Mapping[str, Any] | None = None,
+        layer_type: str | None = None,
     ) -> list[Layer]:
         """Add arbitrary layer data to the viewer.
 
@@ -1602,9 +1600,9 @@ def _normalize_layer_data(data: LayerData) -> FullLayerData:
 
 def _unify_data_and_user_kwargs(
     data: LayerData,
-    kwargs: Optional[dict] = None,
-    layer_type: Optional[LayerTypeName] = None,
-    fallback_name: Optional[str] = None,
+    kwargs: dict | None = None,
+    layer_type: LayerTypeName | None = None,
+    fallback_name: str | None = None,
 ) -> FullLayerData:
     """Merge data returned from plugins with options specified by user.
 

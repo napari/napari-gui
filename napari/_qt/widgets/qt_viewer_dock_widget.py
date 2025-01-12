@@ -2,7 +2,7 @@ import warnings
 from functools import reduce
 from itertools import count
 from operator import ior
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Union
 from weakref import ReferenceType, ref
 
 from qtpy.QtCore import Qt
@@ -80,7 +80,7 @@ class QtViewerDockWidget(QDockWidget):
         *,
         name: str = '',
         area: str = 'right',
-        allowed_areas: Optional[list[str]] = None,
+        allowed_areas: list[str] | None = None,
         shortcut=_sentinel,
         object_name: str = '',
         add_vertical_stretch=True,

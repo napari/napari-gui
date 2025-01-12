@@ -1,5 +1,3 @@
-from typing import Optional, Union
-
 import numpy as np
 import numpy.typing as npt
 import pandas as pd
@@ -76,7 +74,7 @@ class TrackManager:
         self._track_vertices: npt.NDArray | None = None
         self._track_connex: npt.NDArray | None = None
 
-        self._graph: Optional[dict[int, list[int]]] = None
+        self._graph: dict[int, list[int]] | None = None
         self._graph_vertices = None
         self._graph_connex: npt.NDArray | None = None
 
@@ -95,7 +93,9 @@ class TrackManager:
         # access first position of each t slice
         time = sorted_time[start]
 
-        return {t: slice(s, e) for s, e, t in zip(start, end, time)}
+        return {
+            t: slice(s, e) for s, e, t in zip(start, end, time, strict=False)
+        }
 
     @property
     def data(self) -> np.ndarray:
@@ -103,7 +103,7 @@ class TrackManager:
         return self._data
 
     @data.setter
-    def data(self, data: Union[list, np.ndarray]) -> None:
+    def data(self, data: list | np.ndarray) -> None:
         """set the vertex data and build the vispy arrays for display"""
 
         # convert data to a numpy array if it is not already one
@@ -161,7 +161,7 @@ class TrackManager:
     @features.setter
     def features(
         self,
-        features: Union[dict[str, np.ndarray], pd.DataFrame],
+        features: dict[str, np.ndarray] | pd.DataFrame,
     ) -> None:
         self._feature_table.set_values(features, num_data=len(self.data))
         self._feature_table.reorder(self._order)
@@ -179,12 +179,12 @@ class TrackManager:
         self.features = properties
 
     @property
-    def graph(self) -> Optional[dict[int, list[int]]]:
+    def graph(self) -> dict[int, list[int]] | None:
         """dict {int: list}: Graph representing associations between tracks."""
         return self._graph
 
     @graph.setter
-    def graph(self, graph: dict[int, Union[int, list[int]]]) -> None:
+    def graph(self, graph: dict[int, int | list[int]]) -> None:
         """set the track graph"""
         self._graph = self._normalize_track_graph(graph)
 
@@ -239,7 +239,7 @@ class TrackManager:
         return data
 
     def _normalize_track_graph(
-        self, graph: dict[int, Union[int, list[int]]]
+        self, graph: dict[int, int | list[int]]
     ) -> dict[int, list[int]]:
         """validate the track graph"""
         new_graph: dict[int, list[int]] = {}
@@ -334,7 +334,7 @@ class TrackManager:
 
         return self.properties[color_by]
 
-    def get_value(self, coords: npt.NDArray) -> Optional[npt.NDArray]:
+    def get_value(self, coords: npt.NDArray) -> npt.NDArray | None:
         """use a kd-tree to lookup the ID of the nearest tree"""
         if self._kdtree is None:
             return None
@@ -357,41 +357,41 @@ class TrackManager:
         return self.data.shape[1] - 1
 
     @property
-    def max_time(self) -> Optional[int]:
+    def max_time(self) -> int | None:
         """Determine the maximum timestamp of the dataset"""
         if self.track_times is not None:
             return int(np.max(self.track_times))
         return None
 
     @property
-    def track_vertices(self) -> Optional[np.ndarray]:
+    def track_vertices(self) -> np.ndarray | None:
         """return the track vertices"""
         return self._track_vertices
 
     @property
-    def track_connex(self) -> Optional[np.ndarray]:
+    def track_connex(self) -> np.ndarray | None:
         """vertex connections for drawing track lines"""
         return self._track_connex
 
     @property
-    def graph_vertices(self) -> Optional[np.ndarray]:
+    def graph_vertices(self) -> np.ndarray | None:
         """return the graph vertices"""
         return self._graph_vertices
 
     @property
-    def graph_connex(self) -> Optional[npt.NDArray]:
+    def graph_connex(self) -> npt.NDArray | None:
         """vertex connections for drawing the graph"""
         return self._graph_connex
 
     @property
-    def track_times(self) -> Optional[np.ndarray]:
+    def track_times(self) -> np.ndarray | None:
         """time points associated with each track vertex"""
         if self.track_vertices is not None:
             return self.track_vertices[:, 0]
         return None
 
     @property
-    def graph_times(self) -> Optional[np.ndarray]:
+    def graph_times(self) -> np.ndarray | None:
         """time points associated with each graph vertex"""
         if self.graph_vertices is not None:
             return self.graph_vertices[:, 0]
@@ -399,7 +399,7 @@ class TrackManager:
 
     def track_labels(
         self, current_time: int
-    ) -> Union[tuple[None, None], tuple[list[str], np.ndarray]]:
+    ) -> tuple[None, None] | tuple[list[str], np.ndarray]:
         """return track labels at the current time"""
         if self._points_id is None:
             return None, None

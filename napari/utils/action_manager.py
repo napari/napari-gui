@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import warnings
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass
 from functools import cached_property
 from inspect import isgeneratorfunction
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import TYPE_CHECKING, Any
 
 from napari.utils.events import EmitterGroup
 from napari.utils.interactions import Shortcut
@@ -104,7 +105,7 @@ class ActionManager:
         name: str,
         command: Callable,
         description: str,
-        keymapprovider: Optional[KeymapProvider],
+        keymapprovider: KeymapProvider | None,
         repeatable: bool = False,
     ):
         """
@@ -267,7 +268,7 @@ class ActionManager:
         self._update_shortcut_bindings(name)
         self._emit_shortcut_change(name, shortcut)
 
-    def unbind_shortcut(self, name: str) -> Optional[list[str]]:
+    def unbind_shortcut(self, name: str) -> list[str] | None:
         """
         Unbind all shortcuts for a given action name.
 

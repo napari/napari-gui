@@ -1,6 +1,6 @@
 import copy
 import warnings
-from typing import Any, Optional, Union
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -314,8 +314,8 @@ class Surface(IntensityVisualizationMixin, Layer):
         # Data containing vectors in the currently viewed slice
         self._data_view = np.zeros((0, self._slice_input.ndisplay))
         self._view_faces = np.zeros((0, 3), dtype=int)
-        self._view_vertex_values: Union[list[Any], np.ndarray] = []
-        self._view_vertex_colors: Union[list[Any], np.ndarray] = []
+        self._view_vertex_values: list[Any] | np.ndarray = []
+        self._view_vertex_colors: list[Any] | np.ndarray = []
 
         # Trigger generation of view slice and thumbnail.
         # Use _update_dims instead of refresh here because _get_ndim is
@@ -399,11 +399,11 @@ class Surface(IntensityVisualizationMixin, Layer):
         self._reset_editable()
 
     @property
-    def vertex_colors(self) -> Optional[np.ndarray]:
+    def vertex_colors(self) -> np.ndarray | None:
         return self._vertex_colors
 
     @vertex_colors.setter
-    def vertex_colors(self, vertex_colors: Optional[np.ndarray]) -> None:
+    def vertex_colors(self, vertex_colors: np.ndarray | None) -> None:
         """Values used to directly color vertices.
 
         Note that dims sliders for this layer are based on vertex_values, so
@@ -488,7 +488,7 @@ class Surface(IntensityVisualizationMixin, Layer):
     @features.setter
     def features(
         self,
-        features: Union[dict[str, np.ndarray], pd.DataFrame],
+        features: dict[str, np.ndarray] | pd.DataFrame,
     ) -> None:
         self._feature_table.set_values(features, num_data=len(self.data[0]))
         self.events.features()
@@ -503,7 +503,7 @@ class Surface(IntensityVisualizationMixin, Layer):
 
     @feature_defaults.setter
     def feature_defaults(
-        self, defaults: Union[dict[str, Any], pd.DataFrame]
+        self, defaults: dict[str, Any] | pd.DataFrame
     ) -> None:
         self._feature_table.set_defaults(defaults)
         self.events.feature_defaults()
@@ -513,7 +513,7 @@ class Surface(IntensityVisualizationMixin, Layer):
         return str(self._shading)
 
     @shading.setter
-    def shading(self, shading: Union[str, Shading]) -> None:
+    def shading(self, shading: str | Shading) -> None:
         if isinstance(shading, Shading):
             self._shading = shading
         else:
@@ -525,9 +525,7 @@ class Surface(IntensityVisualizationMixin, Layer):
         return self._wireframe
 
     @wireframe.setter
-    def wireframe(
-        self, wireframe: Union[dict, SurfaceWireframe, None]
-    ) -> None:
+    def wireframe(self, wireframe: dict | SurfaceWireframe | None) -> None:
         if wireframe is None:
             self._wireframe.reset()
         elif isinstance(wireframe, (SurfaceWireframe, dict)):
@@ -543,7 +541,7 @@ class Surface(IntensityVisualizationMixin, Layer):
         return self._normals
 
     @normals.setter
-    def normals(self, normals: Union[dict, SurfaceNormals, None]) -> None:
+    def normals(self, normals: dict | SurfaceNormals | None) -> None:
         if normals is None:
             self._normals.reset()
         elif not isinstance(normals, (SurfaceNormals, dict)):
@@ -560,7 +558,7 @@ class Surface(IntensityVisualizationMixin, Layer):
         self.events.normals(value=self._normals)
 
     @property
-    def texture(self) -> Optional[np.ndarray]:
+    def texture(self) -> np.ndarray | None:
         return self._texture
 
     @texture.setter
@@ -572,7 +570,7 @@ class Surface(IntensityVisualizationMixin, Layer):
         self.events.texture(value=self._texture)
 
     @property
-    def texcoords(self) -> Optional[np.ndarray]:
+    def texcoords(self) -> np.ndarray | None:
         return self._texcoords
 
     @texcoords.setter
@@ -624,7 +622,7 @@ class Surface(IntensityVisualizationMixin, Layer):
         data: np.ndarray,
         vertex_ndim: int,
         dims: int = 1,
-    ) -> Union[list[Any], np.ndarray]:
+    ) -> list[Any] | np.ndarray:
         """Return associated layer data (e.g. vertex values, colors) within
         the current slice.
         """
@@ -634,7 +632,7 @@ class Surface(IntensityVisualizationMixin, Layer):
         data_ndim = data.ndim - 1
         if data_ndim >= dims:
             # Get indices for axes corresponding to data dimensions
-            data_indices: tuple[Union[int, slice], ...] = tuple(
+            data_indices: tuple[int | slice, ...] = tuple(
                 slice(None) if np.isnan(idx) else int(np.round(idx))
                 for idx in self._data_slice.point[:-vertex_ndim]
             )
@@ -732,10 +730,10 @@ class Surface(IntensityVisualizationMixin, Layer):
 
     def _get_value_3d(
         self,
-        start_point: Optional[np.ndarray],
-        end_point: Optional[np.ndarray],
+        start_point: np.ndarray | None,
+        end_point: np.ndarray | None,
         dims_displayed: list[int],
-    ) -> tuple[Union[None, float, int], Optional[int]]:
+    ) -> tuple[None | float | int, int | None]:
         """Get the layer data value along a ray
 
         Parameters

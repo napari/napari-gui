@@ -3,7 +3,7 @@ import sys
 from collections import abc
 from contextlib import suppress
 from threading import RLock
-from typing import Any, Union
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -109,7 +109,8 @@ with suppress(ModuleNotFoundError):
 classes = [Labels, Points, Vectors, Shapes, Surface, Tracks, Image]
 names = [cls.__name__.lower() for cls in classes]
 layer2addmethod = {
-    cls: getattr(Viewer, 'add_' + name) for cls, name in zip(classes, names)
+    cls: getattr(Viewer, 'add_' + name)
+    for cls, name in zip(classes, names, strict=False)
 }
 
 
@@ -158,7 +159,7 @@ class LockableData:
         return len(self.data.shape)
 
     def __getitem__(
-        self, key: Union[Index, tuple[Index, ...], LayerDataProtocol]
+        self, key: Index | tuple[Index, ...] | LayerDataProtocol
     ) -> LayerDataProtocol:
         with self.lock:
             return self.data[key]
@@ -186,7 +187,7 @@ def are_objects_equal(object1, object2):
     compare two (collections of) arrays or other objects for equality. Ignores nan.
     """
     if isinstance(object1, abc.Sequence):
-        items = zip(object1, object2)
+        items = zip(object1, object2, strict=False)
     elif isinstance(object1, dict):
         items = [(value, object2[key]) for key, value in object1.items()]
     else:

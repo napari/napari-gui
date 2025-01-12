@@ -14,7 +14,7 @@ from napari.utils.colormaps.standardize_color import transform_color
 
 @pytest.mark.parametrize(
     ('colors', 'true_colors'),
-    zip(single_color_options, single_colors_as_array),
+    zip(single_color_options, single_colors_as_array, strict=False),
 )
 def test_oned_points(colors, true_colors):
     np.testing.assert_array_equal(true_colors, transform_color(colors))
@@ -34,12 +34,13 @@ def test_warns_but_parses():
         ),
     ]
     with pytest.warns(UserWarning):
-        for true, color in zip(true_colors, colors):
+        for true, color in zip(true_colors, colors, strict=False):
             np.testing.assert_array_equal(true, transform_color(color))
 
 
 @pytest.mark.parametrize(
-    ('colors', 'true_colors'), zip(two_color_options, two_colors_as_array)
+    ('colors', 'true_colors'),
+    zip(two_color_options, two_colors_as_array, strict=False),
 )
 def test_twod_points(colors, true_colors):
     np.testing.assert_array_equal(true_colors, transform_color(colors))

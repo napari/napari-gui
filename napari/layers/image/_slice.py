@@ -1,5 +1,6 @@
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable, Optional, Union
+from typing import Any
 
 import numpy as np
 
@@ -87,7 +88,7 @@ class _ImageSliceResponse:
         *,
         slice_input: _SliceInput,
         rgb: bool,
-        request_id: Optional[int] = None,
+        request_id: int | None = None,
     ) -> '_ImageSliceResponse':
         """Returns an empty image slice response.
 
@@ -355,7 +356,7 @@ class _ImageSliceRequest:
     @staticmethod
     def _point_to_slices(
         point: tuple[float, ...],
-    ) -> tuple[Union[slice, int], ...]:
+    ) -> tuple[slice | int, ...]:
         # no need to check out of bounds here cause it's guaranteed
 
         # values in point and margins are np.nan if no slicing should happen along that dimension

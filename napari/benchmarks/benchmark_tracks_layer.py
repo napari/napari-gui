@@ -24,7 +24,9 @@ class TracksSuite:
         track_ids = rng.integers(n_tracks, size=size)
         time = np.zeros(len(track_ids))
 
-        for value, counts in zip(*np.unique(track_ids, return_counts=True)):
+        for value, counts in zip(
+            *np.unique(track_ids, return_counts=True), strict=False
+        ):
             t = rng.permutation(counts)
             time[track_ids == value] = t
 

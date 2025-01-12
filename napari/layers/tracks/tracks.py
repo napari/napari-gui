@@ -2,7 +2,7 @@
 # from napari.utils.events import Event
 # from napari.utils.colormaps import AVAILABLE_COLORMAPS
 
-from typing import Any, Optional, Union
+from typing import Any
 from warnings import warn
 
 import numpy as np
@@ -179,7 +179,7 @@ class Tracks(Layer):
         # track manager deals with data slicing, graph building and properties
         self._manager = TrackManager(data)
 
-        self._track_colors: Optional[np.ndarray] = None
+        self._track_colors: np.ndarray | None = None
         self._colormaps_dict = colormaps_dict or {}  # additional colormaps
         self._color_by = color_by  # default color by ID
         self._colormap = colormap
@@ -274,7 +274,7 @@ class Tracks(Layer):
 
         return
 
-    def _get_value(self, position) -> Optional[int]:
+    def _get_value(self, position) -> int | None:
         """Value of the data at a position in data coordinates.
 
         Use a kd-tree to lookup the ID of the nearest tree.
@@ -366,7 +366,7 @@ class Tracks(Layer):
         return data[:, (2, 1, 0)]  # z, y, x -> x, y, z
 
     @property
-    def current_time(self) -> Optional[int]:
+    def current_time(self) -> int | None:
         """current time according to the first dimension"""
         # TODO(arl): get the correct index here
         time_step = self._data_slice.point[0]
@@ -432,7 +432,7 @@ class Tracks(Layer):
     @features.setter
     def features(
         self,
-        features: Union[dict[str, np.ndarray], pd.DataFrame],
+        features: dict[str, np.ndarray] | pd.DataFrame,
     ) -> None:
         self._manager.features = features
         self._check_color_by_in_features()
@@ -454,12 +454,12 @@ class Tracks(Layer):
         return list(self.properties.keys())
 
     @property
-    def graph(self) -> Optional[dict[int, list[int]]]:
+    def graph(self) -> dict[int, list[int]] | None:
         """dict {int: list}: Graph representing associations between tracks."""
         return self._manager.graph
 
     @graph.setter
-    def graph(self, graph: dict[int, Union[int, list[int]]]) -> None:
+    def graph(self, graph: dict[int, int | list[int]]) -> None:
         """Set the track graph."""
         # Ignored type, because mypy can't handle different signatures
         # on getters and setters; see https://github.com/python/mypy/issues/3004
@@ -609,28 +609,28 @@ class Tracks(Layer):
         self._track_colors = colormap.map(vertex_properties)
 
     @property
-    def track_connex(self) -> Optional[np.ndarray]:
+    def track_connex(self) -> np.ndarray | None:
         """vertex connections for drawing track lines"""
         return self._manager.track_connex
 
     @property
-    def track_colors(self) -> Optional[np.ndarray]:
+    def track_colors(self) -> np.ndarray | None:
         """return the vertex colors according to the currently selected
         property"""
         return self._track_colors
 
     @property
-    def graph_connex(self) -> Optional[np.ndarray]:
+    def graph_connex(self) -> np.ndarray | None:
         """vertex connections for drawing the graph"""
         return self._manager.graph_connex
 
     @property
-    def track_times(self) -> Optional[np.ndarray]:
+    def track_times(self) -> np.ndarray | None:
         """time points associated with each track vertex"""
         return self._manager.track_times
 
     @property
-    def graph_times(self) -> Optional[np.ndarray]:
+    def graph_times(self) -> np.ndarray | None:
         """time points associated with each graph vertex"""
         return self._manager.graph_times
 

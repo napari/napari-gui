@@ -11,8 +11,6 @@ from itertools import chain
 from typing import (
     TYPE_CHECKING,
     Any,
-    Optional,
-    Union,
     cast,
 )
 
@@ -194,7 +192,7 @@ def _get_contrib_parent_menu(
     multiprovider: bool,
     parent_menu: MenuId,
     mf: PluginManifest,
-    group: Optional[str] = None,
+    group: str | None = None,
 ) -> tuple[str, list[tuple[str, SubmenuItem]]]:
     """Get parent menu of plugin contribution (samples/widgets).
 
@@ -324,7 +322,7 @@ def _toggle_or_get_widget(
     plugin: str,
     widget_name: str,
     full_name: str,
-) -> Optional[tuple[Union[FunctionGui, QWidget, Widget], str]]:
+) -> tuple[FunctionGui | QWidget | Widget, str] | None:
     """Toggle if widget already built otherwise return widget.
 
     Returned widget will be added to main window by a processor.

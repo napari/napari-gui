@@ -1,5 +1,3 @@
-from typing import Optional
-
 import numpy as np
 import numpy.typing as npt
 
@@ -786,7 +784,7 @@ def distance_between_point_and_line_3d(
 
 def find_nearest_triangle_intersection(
     ray_position: np.ndarray, ray_direction: np.ndarray, triangles: np.ndarray
-) -> tuple[Optional[int], Optional[np.ndarray]]:
+) -> tuple[int | None, np.ndarray | None]:
     """Given an array of triangles, find the index and intersection location
     of a ray and the nearest triangle.
 

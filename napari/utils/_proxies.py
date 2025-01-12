@@ -2,7 +2,8 @@ import os
 import re
 import sys
 import warnings
-from typing import Any, Callable, Generic, TypeVar, Union
+from collections.abc import Callable
+from typing import Any, Generic, TypeVar, Union
 
 import wrapt
 

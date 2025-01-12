@@ -3,7 +3,7 @@ from collections import OrderedDict, defaultdict
 from collections.abc import Iterable
 from functools import lru_cache
 from threading import Lock
-from typing import NamedTuple, Optional, Union
+from typing import NamedTuple, Union
 
 import numpy as np
 import skimage.color as colorconv
@@ -320,7 +320,9 @@ def color_dict_to_colormap(colors):
 
     control2index = {
         tuple(color): control_point
-        for color, control_point in zip(colormap.colors, colormap.controls)
+        for color, control_point in zip(
+            colormap.colors, colormap.controls, strict=False
+        )
     }
 
     control_small_delta = 0.5 / len(control_colors)
@@ -896,9 +898,9 @@ def ensure_colormap(colormap: ValidColormapArg) -> Colormap:
 
 def _colormap_from_colors(
     colors: ColorType,
-    name: Optional[str] = 'custom',
-    display_name: Optional[str] = None,
-) -> Optional[Colormap]:
+    name: str | None = 'custom',
+    display_name: str | None = None,
+) -> Colormap | None:
     try:
         color_array = transform_color(colors)
     except (ValueError, AttributeError, KeyError):

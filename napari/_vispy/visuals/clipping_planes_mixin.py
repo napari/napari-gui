@@ -1,4 +1,4 @@
-from typing import Optional, Protocol
+from typing import Protocol
 
 from vispy.visuals.filters import Filter
 from vispy.visuals.filters.clipping_planes import PlanesClipper
@@ -9,7 +9,7 @@ class _PVisual(Protocol):
     Type for vispy visuals that implement the attach method
     """
 
-    _subvisuals: Optional[list['_PVisual']]
+    _subvisuals: list['_PVisual'] | None
     _clip_filter: PlanesClipper
 
     def attach(self, filt: Filter, view=None): ...

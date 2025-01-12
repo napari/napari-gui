@@ -3,9 +3,7 @@
 from collections.abc import Iterator, Mapping, MutableMapping, Sequence
 from typing import (
     Any,
-    Optional,
     TypeVar,
-    Union,
 )
 
 _K = TypeVar('_K')
@@ -17,8 +15,8 @@ class TypedMutableMapping(MutableMapping[_K, _T]):
 
     def __init__(
         self,
-        data: Optional[Mapping[_K, _T]] = None,
-        basetype: Union[type[_T], Sequence[type[_T]]] = (),
+        data: Mapping[_K, _T] | None = None,
+        basetype: type[_T] | Sequence[type[_T]] = (),
     ) -> None:
         if data is None:
             data = {}

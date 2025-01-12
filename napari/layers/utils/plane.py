@@ -12,7 +12,7 @@ from napari.utils.translations import trans
 if sys.version_info < (3, 10):
     # Once 3.12+ there is a new syntax, type Foo = Bar[...], but
     # we are not there yet.
-    from typing_extensions import TypeAlias
+    from typing import TypeAlias
 else:
     from typing import TypeAlias
 
@@ -53,7 +53,8 @@ class Plane(EventedModel):
         self.position = cast(
             Point3D,
             tuple(
-                p + (distance * n) for p, n in zip(self.position, self.normal)
+                p + (distance * n)
+                for p, n in zip(self.position, self.normal, strict=False)
             ),
         )
 

@@ -1,5 +1,5 @@
 import threading
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 from weakref import ref
 
 import numpy as np
@@ -542,7 +542,7 @@ class AnimationThread(QThread):
 
     frame_requested = Signal(int, int)  # axis, point
 
-    def __init__(self, parent: Optional[QObject] = None) -> None:
+    def __init__(self, parent: QObject | None = None) -> None:
         # FIXME there are attributes defined outside of __init__.
         super().__init__(parent=parent)
         self._interval = 1

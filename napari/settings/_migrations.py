@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import sys
 import warnings
+from collections.abc import Callable
 from contextlib import contextmanager
 from importlib.metadata import distributions
-from typing import TYPE_CHECKING, Callable, NamedTuple
+from typing import TYPE_CHECKING, NamedTuple
 
 from napari.settings._fields import Version
 from napari.settings._shortcuts import ShortcutsSettings

@@ -1,7 +1,7 @@
 import os
 import random
 import sys
-from typing import NamedTuple, Optional
+from typing import NamedTuple
 from unittest.mock import Mock
 
 import numpy as np
@@ -50,8 +50,8 @@ from napari.utils.events.event import Event
 class LayerTypeWithData(NamedTuple):
     type: type[Layer]
     data: np.ndarray
-    colormap: Optional[DirectLabelColormap]
-    properties: Optional[dict]
+    colormap: DirectLabelColormap | None
+    properties: dict | None
     expected_isinstance: type[QtLayerControlsContainer]
 
 
@@ -345,9 +345,11 @@ def test_create_layer_controls_qslider(
                 num_values = base_value_range.size
                 max_value = np.full(num_values, qslider.maximum())
                 min_value = np.full(num_values, qslider.minimum())
-                value_range_to_max = list(zip(base_value_range, max_value))
+                value_range_to_max = list(
+                    zip(base_value_range, max_value, strict=False)
+                )
                 value_range_to_min = list(
-                    zip(min_value, np.flip(base_value_range))
+                    zip(min_value, np.flip(base_value_range), strict=False)
                 )
                 value_range = value_range_to_max[:-1] + value_range_to_min[:-1]
             else:
@@ -366,11 +368,13 @@ def test_create_layer_controls_qslider(
                 num_values = len(base_value_range)
                 max_value = [qslider.maximum()] * num_values
                 min_value = [qslider.minimum()] * num_values
-                value_range_to_max = list(zip(base_value_range, max_value))
+                value_range_to_max = list(
+                    zip(base_value_range, max_value, strict=False)
+                )
                 base_value_range_copy = base_value_range.copy()
                 base_value_range_copy.reverse()
                 value_range_to_min = list(
-                    zip(min_value, base_value_range_copy)
+                    zip(min_value, base_value_range_copy, strict=False)
                 )
                 value_range = value_range_to_max[:-1] + value_range_to_min[:-1]
             else:

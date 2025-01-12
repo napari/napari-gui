@@ -1,6 +1,6 @@
 import warnings
 from copy import copy
-from typing import Any, Union
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -296,7 +296,7 @@ class Vectors(Layer):
         # Data containing vectors in the currently viewed slice
         self._view_data = np.empty((0, 2, 2))
         self._view_indices = np.array([], dtype=int)
-        self._view_alphas: Union[float, np.ndarray] = 1.0
+        self._view_alphas: float | np.ndarray = 1.0
 
         # now that everything is set up, make the layer visible (if set to visible)
         self.refresh()
@@ -359,7 +359,7 @@ class Vectors(Layer):
     @features.setter
     def features(
         self,
-        features: Union[dict[str, np.ndarray], pd.DataFrame],
+        features: dict[str, np.ndarray] | pd.DataFrame,
     ) -> None:
         self._feature_table.set_values(features, num_data=len(self.data))
         if self._edge.color_properties is not None:
@@ -403,7 +403,7 @@ class Vectors(Layer):
 
     @feature_defaults.setter
     def feature_defaults(
-        self, defaults: Union[dict[str, Any], pd.DataFrame]
+        self, defaults: dict[str, Any] | pd.DataFrame
     ) -> None:
         self._feature_table.set_defaults(defaults)
         self.events.feature_defaults()
@@ -568,7 +568,7 @@ class Vectors(Layer):
         return self._edge.color_mode
 
     @edge_color_mode.setter
-    def edge_color_mode(self, edge_color_mode: Union[str, ColorMode]):
+    def edge_color_mode(self, edge_color_mode: str | ColorMode):
         edge_color_mode = ColorMode(edge_color_mode)
 
         if edge_color_mode == ColorMode.DIRECT:
@@ -628,7 +628,7 @@ class Vectors(Layer):
         return self._edge.categorical_colormap.fallback_color.values
 
     @edge_color_cycle.setter
-    def edge_color_cycle(self, edge_color_cycle: Union[list, np.ndarray]):
+    def edge_color_cycle(self, edge_color_cycle: list | np.ndarray):
         self._edge.categorical_colormap = edge_color_cycle
 
     @property
@@ -655,7 +655,7 @@ class Vectors(Layer):
 
     @edge_contrast_limits.setter
     def edge_contrast_limits(
-        self, contrast_limits: Union[None, tuple[float, float]]
+        self, contrast_limits: None | tuple[float, float]
     ):
         self._edge.contrast_limits = contrast_limits
 
@@ -778,13 +778,13 @@ class Vectors(Layer):
                 downsampled, 0, np.subtract(self._thumbnail_shape[:2], 1)
             )
             edge_colors = self._edge.colors[thumbnail_color_indices]
-            for v, ec in zip(downsampled, edge_colors):
+            for v, ec in zip(downsampled, edge_colors, strict=False):
                 start = v[0]
                 stop = v[1]
                 step = int(np.ceil(np.max(abs(stop - start))))
                 x_vals = np.linspace(start[0], stop[0], step)
                 y_vals = np.linspace(start[1], stop[1], step)
-                for x, y in zip(x_vals, y_vals):
+                for x, y in zip(x_vals, y_vals, strict=False):
                     colormapped[int(x), int(y), :] = ec
             colormapped[..., 3] = (colormapped[..., 3] * self.opacity).astype(
                 np.uint8

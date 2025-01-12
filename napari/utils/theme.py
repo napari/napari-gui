@@ -6,7 +6,7 @@ import sys
 import warnings
 from ast import literal_eval
 from contextlib import suppress
-from typing import Any, Literal, Optional, Union, overload
+from typing import Any, Literal, overload
 
 import npe2
 
@@ -135,7 +135,7 @@ def increase(font_size: str, pt: int) -> str:
     return f'{int(font_size[:-2]) + int(pt)}pt'
 
 
-def _parse_color_as_rgb(color: Union[str, Color]) -> tuple[int, int, int]:
+def _parse_color_as_rgb(color: str | Color) -> tuple[int, int, int]:
     if isinstance(color, str):
         if color.startswith('rgb('):
             return literal_eval(color.lstrip('rgb(').rstrip(')'))
@@ -143,7 +143,7 @@ def _parse_color_as_rgb(color: Union[str, Color]) -> tuple[int, int, int]:
     return color.as_rgb_tuple()[:3]
 
 
-def darken(color: Union[str, Color], percentage: float = 10) -> str:
+def darken(color: str | Color, percentage: float = 10) -> str:
     ratio = 1 - float(percentage) / 100
     red, green, blue = _parse_color_as_rgb(color)
     red = min(max(int(red * ratio), 0), 255)
@@ -152,7 +152,7 @@ def darken(color: Union[str, Color], percentage: float = 10) -> str:
     return f'rgb({red}, {green}, {blue})'
 
 
-def lighten(color: Union[str, Color], percentage: float = 10) -> str:
+def lighten(color: str | Color, percentage: float = 10) -> str:
     ratio = float(percentage) / 100
     red, green, blue = _parse_color_as_rgb(color)
     red = min(max(int(red + (255 - red) * ratio), 0), 255)
@@ -161,7 +161,7 @@ def lighten(color: Union[str, Color], percentage: float = 10) -> str:
     return f'rgb({red}, {green}, {blue})'
 
 
-def opacity(color: Union[str, Color], value: int = 255) -> str:
+def opacity(color: str | Color, value: int = 255) -> str:
     red, green, blue = _parse_color_as_rgb(color)
     return f'rgba({red}, {green}, {blue}, {max(min(int(value), 255), 0)})'
 
@@ -246,7 +246,7 @@ def get_theme(theme_id: str, as_dict: Literal[False]) -> Theme: ...
 def get_theme(theme_id: str, as_dict: Literal[True]) -> dict[str, Any]: ...
 
 
-def get_theme(theme_id: str, as_dict: Optional[bool] = None):
+def get_theme(theme_id: str, as_dict: bool | None = None):
     """Get a copy of theme based on it's id.
 
     If you get a copy of the theme, changes to the theme model will not be

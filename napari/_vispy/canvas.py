@@ -26,7 +26,7 @@ from napari.utils.interactions import (
 from napari.utils.theme import get_theme
 
 if TYPE_CHECKING:
-    from typing import Callable, Optional, Union
+    from collections.abc import Callable
 
     import numpy.typing as npt
     from qtpy.QtCore import Qt, pyqtBoundSignal
@@ -188,7 +188,7 @@ class VispyCanvas:
         return self._scene_canvas._backend.screen_changed
 
     @property
-    def background_color_override(self) -> Optional[str]:
+    def background_color_override(self) -> str | None:
         """Background color of VispyCanvas.view returned as hex string. When not None, color is shown instead of
         VispyCanvas.bgcolor. The setter expects str (any in vispy.color.get_color_names) or hex starting
         with # or a tuple | np.array ({3,4},) with values between 0 and 1.
@@ -200,7 +200,7 @@ class VispyCanvas:
 
     @background_color_override.setter
     def background_color_override(
-        self, value: Union[str, npt.ArrayLike, None]
+        self, value: str | npt.ArrayLike | None
     ) -> None:
         if value:
             self.view.bgcolor = value
@@ -234,7 +234,7 @@ class VispyCanvas:
         return self._scene_canvas.bgcolor.hex
 
     @bgcolor.setter
-    def bgcolor(self, value: Union[str, npt.ArrayLike]) -> None:
+    def bgcolor(self, value: str | npt.ArrayLike) -> None:
         self._scene_canvas.bgcolor = value
 
     @property
@@ -264,7 +264,7 @@ class VispyCanvas:
         return self.native.cursor()
 
     @cursor.setter
-    def cursor(self, q_cursor: Union[QCursor, Qt.CursorShape]):
+    def cursor(self, q_cursor: QCursor | Qt.CursorShape):
         """Setting the cursor of the native widget"""
         self.native.setCursor(q_cursor)
 

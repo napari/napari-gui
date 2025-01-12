@@ -217,7 +217,7 @@ def test_fast_points_lookup() -> None:
 
     assert len(time_points) == len(points_lookup)
     total_length = 0
-    for s, e, t, r in zip(start, end, time_points, repeats):
+    for s, e, t, r in zip(start, end, time_points, repeats, strict=False):
         assert points_lookup[t].start == s
         assert points_lookup[t].stop == e
         assert points_lookup[t].stop - points_lookup[t].start == r

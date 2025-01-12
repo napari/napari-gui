@@ -14,7 +14,7 @@ of the layer types, like "image", "points", etc...):
 """
 
 import inspect
-from typing import Any, Optional
+from typing import Any
 
 from numpydoc.docscrape import NumpyDocString as _NumpyDocString
 
@@ -122,7 +122,7 @@ def _make_viewer_then(
     add_method: str,
     /,
     *args,
-    viewer: Optional[Viewer] = None,
+    viewer: Viewer | None = None,
     **kwargs,
 ) -> tuple[Viewer, Any]:
     """Create a viewer, call given add_* method, then return viewer and layer.

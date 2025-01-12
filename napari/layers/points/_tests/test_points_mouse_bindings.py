@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import Optional, Union
 from unittest.mock import MagicMock
 
 import numpy as np
@@ -24,15 +23,15 @@ class Event:
     type: str
     is_dragging: bool = False
     modifiers: list[str] = field(default_factory=list)
-    position: Union[tuple[int, int], tuple[int, int, int]] = (
+    position: tuple[int, int] | tuple[int, int, int] = (
         0,
         0,
     )  # world coords
     pos: np.ndarray = field(
         default_factory=lambda: np.zeros(2)
     )  # canvas coords
-    view_direction: Optional[list[float]] = None
-    up_direction: Optional[list[float]] = None
+    view_direction: list[float] | None = None
+    up_direction: list[float] | None = None
     dims_displayed: list[int] = field(default_factory=lambda: [0, 1])
 
 

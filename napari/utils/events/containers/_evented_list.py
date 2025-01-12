@@ -24,12 +24,7 @@ cover this in test_evented_list.py)
 
 import contextlib
 import logging
-from collections.abc import Generator, Iterable, Sequence
-from typing import (
-    Callable,
-    Optional,
-    Union,
-)
+from collections.abc import Callable, Generator, Iterable, Sequence
 
 from napari.utils.events.containers._typed import (
     _L,
@@ -89,8 +84,8 @@ class EventedList(TypedMutableSequence[_T]):
         self,
         data: Iterable[_T] = (),
         *,
-        basetype: Union[type[_T], Sequence[type[_T]]] = (),
-        lookup: Optional[dict[type[_L], Callable[[_T], Union[_T, _L]]]] = None,
+        basetype: type[_T] | Sequence[type[_T]] = (),
+        lookup: dict[type[_L], Callable[[_T], _T | _L]] | None = None,
     ) -> None:
         if lookup is None:
             lookup = {}
@@ -149,7 +144,7 @@ class EventedList(TypedMutableSequence[_T]):
                             slice_size=len(indices),
                         )
                     )
-                for i, v in zip(indices, value):
+                for i, v in zip(indices, value, strict=False):
                     self.__setitem__(i, v)
             else:
                 del self[key]

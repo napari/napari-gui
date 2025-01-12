@@ -37,7 +37,7 @@ class StyleEncoding(Protocol[StyleValue, StyleArray]):
     from this protocol in the future.
     """
 
-    def __call__(self, features: Any) -> Union[StyleValue, StyleArray]:
+    def __call__(self, features: Any) -> StyleValue | StyleArray:
         """Apply this encoding with the given features to generate style values.
 
         Parameters
@@ -58,7 +58,7 @@ class StyleEncoding(Protocol[StyleValue, StyleArray]):
         """
 
     @property
-    def _values(self) -> Union[StyleValue, StyleArray]:
+    def _values(self) -> StyleValue | StyleArray:
         """The previously generated and cached values."""
 
     def _apply(self, features: Any) -> None:
@@ -143,11 +143,11 @@ class _ConstantStyleEncoding(
 
     constant: StyleValue
 
-    def __call__(self, features: Any) -> Union[StyleValue, StyleArray]:
+    def __call__(self, features: Any) -> StyleValue | StyleArray:
         return self.constant
 
     @property
-    def _values(self) -> Union[StyleValue, StyleArray]:
+    def _values(self) -> StyleValue | StyleArray:
         return self.constant
 
     def _apply(self, features: Any) -> None:
@@ -186,7 +186,7 @@ class _ManualStyleEncoding(
     array: StyleArray
     default: StyleValue
 
-    def __call__(self, features: Any) -> Union[StyleArray, StyleValue]:
+    def __call__(self, features: Any) -> StyleArray | StyleValue:
         n_values = self.array.shape[0]
         n_rows = features.shape[0]
         if n_rows > n_values:
@@ -195,7 +195,7 @@ class _ManualStyleEncoding(
         return np.array(self.array[:n_rows])
 
     @property
-    def _values(self) -> Union[StyleValue, StyleArray]:
+    def _values(self) -> StyleValue | StyleArray:
         return self.array
 
     def _apply(self, features: Any) -> None:
@@ -233,11 +233,11 @@ class _DerivedStyleEncoding(
         self._cached = _empty_array_like(self.fallback)
 
     @abstractmethod
-    def __call__(self, features: Any) -> Union[StyleValue, StyleArray]:
+    def __call__(self, features: Any) -> StyleValue | StyleArray:
         pass
 
     @property
-    def _values(self) -> Union[StyleValue, StyleArray]:
+    def _values(self) -> StyleValue | StyleArray:
         return self._cached
 
     def _apply(self, features: Any) -> None:

@@ -5,11 +5,10 @@ import os
 import sys
 import threading
 import warnings
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from datetime import datetime
 from enum import auto
 from types import TracebackType
-from typing import Callable, Optional, Union
 
 from napari.utils.events import Event, EventEmitter
 from napari.utils.misc import StringEnum
@@ -96,9 +95,7 @@ class Notification(Event):
     def __init__(
         self,
         message: str,
-        severity: Union[
-            str, NotificationSeverity
-        ] = NotificationSeverity.WARNING,
+        severity: str | NotificationSeverity = NotificationSeverity.WARNING,
         actions: ActionSequence = (),
         **kwargs,
     ) -> None:
@@ -221,7 +218,7 @@ class NotificationManager:
     """
 
     records: list[Notification]
-    _instance: Optional[NotificationManager] = None
+    _instance: NotificationManager | None = None
 
     def __init__(self) -> None:
         self.records: list[Notification] = []
@@ -285,8 +282,8 @@ class NotificationManager:
         args: tuple[
             type[BaseException],
             BaseException,
-            Optional[TracebackType],
-            Optional[threading.Thread],
+            TracebackType | None,
+            threading.Thread | None,
         ],
     ):
         self.receive_error(*args)
@@ -295,8 +292,8 @@ class NotificationManager:
         self,
         exctype: type[BaseException],
         value: BaseException,
-        traceback: Optional[TracebackType] = None,
-        thread: Optional[threading.Thread] = None,
+        traceback: TracebackType | None = None,
+        thread: threading.Thread | None = None,
     ):
         if isinstance(value, KeyboardInterrupt):
             sys.exit('Closed by KeyboardInterrupt')

@@ -14,7 +14,6 @@ from threading import RLock
 from typing import (
     TYPE_CHECKING,
     Any,
-    Optional,
     Protocol,
     runtime_checkable,
 )
@@ -134,7 +133,7 @@ class _LayerSlicer:
         finally:
             self._force_sync = prev
 
-    def wait_until_idle(self, timeout: Optional[float] = None) -> None:
+    def wait_until_idle(self, timeout: float | None = None) -> None:
         """Wait for all slicing tasks to complete before returning.
 
         Attributes
@@ -162,7 +161,7 @@ class _LayerSlicer:
         layers: Iterable[Layer],
         dims: Dims,
         force: bool = False,
-    ) -> Optional[Future[dict]]:
+    ) -> Future[dict] | None:
         """Slices the given layers with the given dims.
 
         Submitting multiple layers at one generates multiple requests, but only ONE task.
@@ -311,7 +310,7 @@ class _LayerSlicer:
 
     def _find_existing_task(
         self, layers: Iterable[Layer]
-    ) -> Optional[Future[dict]]:
+    ) -> Future[dict] | None:
         """Find the task associated with a list of layers. Returns the first
         task found for which the layers of the task are a subset of the input
         layers.

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Generator
-from typing import Callable, Union
+from collections.abc import Callable, Generator
 
 import napari
 from napari.layers.base._base_constants import Mode
@@ -52,13 +51,13 @@ def orient_plane_normal_along_x(layer: Image) -> None:
 )
 def orient_plane_normal_along_view_direction(
     layer: Image,
-) -> Union[None, Generator[None, None, None]]:
+) -> None | Generator[None, None, None]:
     viewer = napari.viewer.current_viewer()
     if viewer is None or viewer.dims.ndisplay != 3:
         return None
 
     def sync_plane_normal_with_view_direction(
-        event: Union[None, Event] = None,
+        event: None | Event = None,
     ) -> None:
         """Plane normal syncronisation mouse callback."""
         layer.plane.normal = layer._world_to_displayed_data_normal(

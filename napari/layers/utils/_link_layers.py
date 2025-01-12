@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Generator, Iterable
+from collections.abc import Callable, Generator, Iterable
 from contextlib import contextmanager
 from functools import partial
 from itertools import combinations, permutations, product
 from typing import (
     TYPE_CHECKING,
-    Callable,
-    Optional,
 )
 from weakref import ReferenceType, ref
 
@@ -130,7 +128,7 @@ def link_layers(
             # get a suitable equality operator for this attribute type
             eq_op = pick_equality_operator(getattr(l1, attr))
 
-            def setter(event: Optional[Event] = None) -> None:
+            def setter(event: Event | None = None) -> None:
                 new_val = getattr(l1, attr)
                 # this line is the important part for avoiding recursion
                 if not eq_op(getattr(l2, attr), new_val):

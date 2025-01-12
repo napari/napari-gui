@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import sys
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Optional, cast
+from typing import TYPE_CHECKING, cast
 from warnings import warn
 
 from qtpy import PYQT5, PYSIDE2
@@ -61,7 +61,7 @@ _app_ref = None
 _IPYTHON_WAS_HERE_FIRST = 'IPython' in sys.modules
 
 
-def _focus_changed(old: Optional[QWidget], new: Optional[QWidget]):
+def _focus_changed(old: QWidget | None, new: QWidget | None):
     if old is not None and new is not None:
         return  # ignore focus changes between two widgets
     if old is None and new is None:
@@ -106,13 +106,13 @@ def get_app(*args, **kwargs) -> QApplication:
 
 def get_qapp(
     *,
-    app_name: Optional[str] = None,
-    app_version: Optional[str] = None,
-    icon: Optional[str] = None,
-    org_name: Optional[str] = None,
-    org_domain: Optional[str] = None,
-    app_id: Optional[str] = None,
-    ipy_interactive: Optional[bool] = None,
+    app_name: str | None = None,
+    app_version: str | None = None,
+    icon: str | None = None,
+    org_name: str | None = None,
+    org_domain: str | None = None,
+    app_id: str | None = None,
+    ipy_interactive: bool | None = None,
 ) -> QApplication:
     """Get or create the Qt QApplication.
 

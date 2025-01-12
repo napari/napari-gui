@@ -30,7 +30,9 @@ def test_creating_view(qtbot):
     assert np.all(
         [
             s.isVisibleTo(view) == d
-            for s, d in zip(view.slider_widgets, view._displayed_sliders)
+            for s, d in zip(
+                view.slider_widgets, view._displayed_sliders, strict=False
+            )
         ]
     )
 
@@ -51,7 +53,9 @@ def test_changing_ndim(qtbot):
     assert np.all(
         [
             s.isVisibleTo(view) == d
-            for s, d in zip(view.slider_widgets, view._displayed_sliders)
+            for s, d in zip(
+                view.slider_widgets, view._displayed_sliders, strict=False
+            )
         ]
     )
 
@@ -62,7 +66,9 @@ def test_changing_ndim(qtbot):
     assert np.all(
         [
             s.isVisibleTo(view) == d
-            for s, d in zip(view.slider_widgets, view._displayed_sliders)
+            for s, d in zip(
+                view.slider_widgets, view._displayed_sliders, strict=False
+            )
         ]
     )
 
@@ -104,7 +110,9 @@ def test_changing_display(qtbot):
     assert np.all(
         [
             s.isVisibleTo(view) == d
-            for s, d in zip(view.slider_widgets, view._displayed_sliders)
+            for s, d in zip(
+                view.slider_widgets, view._displayed_sliders, strict=False
+            )
         ]
     )
 
@@ -115,7 +123,9 @@ def test_changing_display(qtbot):
     assert np.all(
         [
             s.isVisibleTo(view) == d
-            for s, d in zip(view.slider_widgets, view._displayed_sliders)
+            for s, d in zip(
+                view.slider_widgets, view._displayed_sliders, strict=False
+            )
         ]
     )
 
@@ -186,7 +196,9 @@ def test_singleton_dims(qtbot):
     assert np.all(
         [
             s.isVisibleTo(view) == d
-            for s, d in zip(view.slider_widgets, view._displayed_sliders)
+            for s, d in zip(
+                view.slider_widgets, view._displayed_sliders, strict=False
+            )
         ]
     )
 

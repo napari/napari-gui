@@ -1,7 +1,8 @@
 import sys
 import warnings
+from collections.abc import Callable
 from contextlib import contextmanager
-from typing import Any, Callable, ClassVar, Union
+from typing import Any, ClassVar, Union
 
 import numpy as np
 from app_model.types import KeyBinding

@@ -1,6 +1,6 @@
-from collections.abc import Generator, Iterable, Iterator
+from collections.abc import Callable, Generator, Iterable, Iterator
 from itertools import takewhile
-from typing import Callable, Optional
+from typing import Optional
 
 from tqdm import tqdm
 
@@ -70,9 +70,9 @@ class progress(tqdm):
 
     def __init__(
         self,
-        iterable: Optional[Iterable] = None,
-        desc: Optional[str] = None,
-        total: Optional[int] = None,
+        iterable: Iterable | None = None,
+        desc: str | None = None,
+        total: int | None = None,
         nest_under: Optional['progress'] = None,
         *args,
         **kwargs,
@@ -109,9 +109,7 @@ class progress(tqdm):
         self._total = total
         self.events.total(value=self.total)
 
-    def display(
-        self, msg: Optional[str] = None, pos: Optional[int] = None
-    ) -> None:
+    def display(self, msg: str | None = None, pos: int | None = None) -> None:
         """Update the display and emit eta event."""
         # just plain tqdm if we don't have gui
         if not self.gui and not self.is_init:
@@ -189,11 +187,11 @@ class cancelable_progress(progress):
 
     def __init__(
         self,
-        iterable: Optional[Iterable] = None,
-        desc: Optional[str] = None,
-        total: Optional[int] = None,
+        iterable: Iterable | None = None,
+        desc: str | None = None,
+        total: int | None = None,
         nest_under: Optional['progress'] = None,
-        cancel_callback: Optional[Callable] = None,
+        cancel_callback: Callable | None = None,
         *args,
         **kwargs,
     ) -> None:

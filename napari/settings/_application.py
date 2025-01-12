@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional
-
 from psutil import virtual_memory
 
 from napari._pydantic_compat import Field, validator
@@ -70,14 +68,14 @@ class ApplicationSettings(EventedModel):
         title=trans._('Save window state'),
         description=trans._('Toggle saving the main window state of widgets.'),
     )
-    window_position: Optional[tuple[int, int]] = Field(
+    window_position: tuple[int, int] | None = Field(
         None,
         title=trans._('Window position'),
         description=trans._(
             'Last saved x and y coordinates for the main window. This setting is managed by the application.'
         ),
     )
-    window_size: Optional[tuple[int, int]] = Field(
+    window_size: tuple[int, int] | None = Field(
         None,
         title=trans._('Window size'),
         description=trans._(
@@ -98,7 +96,7 @@ class ApplicationSettings(EventedModel):
             'Last saved fullscreen state for the main window. This setting is managed by the application.'
         ),
     )
-    window_state: Optional[str] = Field(
+    window_state: str | None = Field(
         None,
         title=trans._('Window state'),
         description=trans._(
@@ -112,7 +110,7 @@ class ApplicationSettings(EventedModel):
             'Toggle diplaying the status bar for the main window.'
         ),
     )
-    preferences_size: Optional[tuple[int, int]] = Field(
+    preferences_size: tuple[int, int] | None = Field(
         None,
         title=trans._('Preferences size'),
         description=trans._(

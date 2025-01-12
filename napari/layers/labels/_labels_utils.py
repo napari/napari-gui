@@ -247,5 +247,5 @@ def expand_slice(
             max(0, min(max_size, s.stop + offset)),
             s.step,
         )
-        for s, max_size in zip(axes_slice, shape)
+        for s, max_size in zip(axes_slice, shape, strict=False)
     )

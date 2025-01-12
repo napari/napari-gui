@@ -1,13 +1,10 @@
 import itertools
 import os
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from functools import lru_cache
 from types import ModuleType
 from typing import (
-    Callable,
     Literal,
-    Optional,
-    Union,
     overload,
 )
 
@@ -82,7 +79,7 @@ def _structure_at_coordinates(
     multipliers: Sequence = itertools.repeat(1),
     dtype=None,
     reduce_fn: Callable[
-        [np.ndarray, np.ndarray, Optional[np.ndarray]], np.ndarray
+        [np.ndarray, np.ndarray, np.ndarray | None], np.ndarray
     ],
 ):
     """Update data with structure at given coordinates.
@@ -108,7 +105,7 @@ def _structure_at_coordinates(
     radius = (structure.shape[0] - 1) // 2
     data = np.zeros(shape, dtype=dtype)
 
-    for point, value in zip(coordinates, multipliers):
+    for point, value in zip(coordinates, multipliers, strict=False):
         slice_im, slice_ball = _get_slices_at(shape, point, radius)
         reduce_fn(
             data[slice_im], value * structure[slice_ball], out=data[slice_im]
@@ -154,9 +151,9 @@ def _smallest_dtype(n: int) -> np.dtype:
 @overload
 def labeled_particles(
     shape: Sequence[int],
-    dtype: Optional[np.dtype] = None,
+    dtype: np.dtype | None = None,
     n: int = 144,
-    seed: Optional[int] = None,
+    seed: int | None = None,
     return_density: Literal[False] = False,
 ) -> np.ndarray: ...
 
@@ -164,9 +161,9 @@ def labeled_particles(
 @overload
 def labeled_particles(
     shape: Sequence[int],
-    dtype: Optional[np.dtype] = None,
+    dtype: np.dtype | None = None,
     n: int = 144,
-    seed: Optional[int] = None,
+    seed: int | None = None,
     return_density: Literal[True] = True,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]: ...
 
@@ -174,11 +171,11 @@ def labeled_particles(
 @lru_cache
 def labeled_particles(
     shape: Sequence[int],
-    dtype: Optional[np.dtype] = None,
+    dtype: np.dtype | None = None,
     n: int = 144,
-    seed: Optional[int] = None,
+    seed: int | None = None,
     return_density: bool = False,
-) -> Union[np.ndarray, tuple[np.ndarray, np.ndarray, np.ndarray]]:
+) -> np.ndarray | tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Generate labeled blobs of given shape and dtype.
 
     Parameters

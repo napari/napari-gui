@@ -4,7 +4,6 @@ from collections import defaultdict
 from collections.abc import Iterator, Sequence
 from typing import (
     TYPE_CHECKING,
-    Optional,
     cast,
 )
 
@@ -32,8 +31,8 @@ class _FakeHookimpl:
 
 
 def read(
-    paths: Sequence[str], plugin: Optional[str] = None, *, stack: bool
-) -> Optional[tuple[list[LayerData], _FakeHookimpl]]:
+    paths: Sequence[str], plugin: str | None = None, *, stack: bool
+) -> tuple[list[LayerData], _FakeHookimpl] | None:
     """Try to return data for `path`, from reader plugins using a manifest."""
 
     # do nothing if `plugin` is not an npe2 reader
@@ -69,8 +68,8 @@ def read(
 def write_layers(
     path: str,
     layers: list[Layer],
-    plugin_name: Optional[str] = None,
-    writer: Optional[WriterContribution] = None,
+    plugin_name: str | None = None,
+    writer: WriterContribution | None = None,
 ) -> tuple[list[str], str]:
     """
     Write layers to a file using an NPE2 plugin.
@@ -121,8 +120,8 @@ def write_layers(
 
 
 def get_widget_contribution(
-    plugin_name: str, widget_name: Optional[str] = None
-) -> Optional[tuple[WidgetCreator, str]]:
+    plugin_name: str, widget_name: str | None = None
+) -> tuple[WidgetCreator, str] | None:
     widgets_seen = set()
     for contrib in pm.iter_widgets():
         if contrib.plugin_name == plugin_name:
@@ -166,7 +165,7 @@ def populate_qmenu(menu: QMenu, menu_key: str):
 
 def file_extensions_string_for_layers(
     layers: Sequence[Layer],
-) -> tuple[Optional[str], list[WriterContribution]]:
+) -> tuple[str | None, list[WriterContribution]]:
     """Create extensions string using npe2.
 
     When npe2 can be imported, returns an extension string and the list
@@ -209,7 +208,7 @@ def file_extensions_string_for_layers(
     )
 
 
-def get_readers(path: Optional[str] = None) -> dict[str, str]:
+def get_readers(path: str | None = None) -> dict[str, str]:
     """Get valid reader plugin_name:display_name mapping given path.
 
     Iterate through compatible readers for the given path and return
@@ -240,7 +239,7 @@ def get_readers(path: Optional[str] = None) -> dict[str, str]:
 
 
 def iter_manifests(
-    disabled: Optional[bool] = None,
+    disabled: bool | None = None,
 ) -> Iterator[PluginManifest]:
     yield from pm.iter_manifests(disabled=disabled)
 
@@ -269,7 +268,7 @@ def sample_iterator() -> Iterator[tuple[str, dict[str, SampleDict]]]:
 
 def get_sample_data(
     plugin: str, sample: str
-) -> tuple[Optional[SampleDataCreator], list[tuple[str, str]]]:
+) -> tuple[SampleDataCreator | None, list[tuple[str, str]]]:
     """Get sample data opener from npe2.
 
     Parameters
@@ -428,7 +427,7 @@ def _when_group_order(
     """Extract when/group/order from an npe2 Submenu or MenuCommand."""
     group, _, _order = (menu_item.group or '').partition('@')
     try:
-        order: Optional[float] = float(_order)
+        order: float | None = float(_order)
     except ValueError:
         order = None
     return {'when': menu_item.when, 'group': group or None, 'order': order}

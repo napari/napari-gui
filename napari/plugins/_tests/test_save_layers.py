@@ -13,7 +13,7 @@ def test_save_layer_single_named_plugin(
     """Test saving a single layer with a named plugin."""
     layers, _, _, filenames = layer_data_and_types
 
-    for layer, fn in zip(layers, filenames):
+    for layer, fn in zip(layers, filenames, strict=False):
         path = os.path.join(tmpdir, fn)
 
         # Check file does not exist
@@ -44,7 +44,7 @@ def test_save_layer_single_no_named_plugin(
 
     layers, _, _, filenames = layer_data_and_types
 
-    for layer, fn in zip(layers, filenames):
+    for layer, fn in zip(layers, filenames, strict=False):
         path = os.path.join(tmpdir, fn)
 
         # Check file does not exist

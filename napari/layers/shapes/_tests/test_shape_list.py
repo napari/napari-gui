@@ -95,7 +95,7 @@ def test_shape_list_outline():
 
     # Check return value for `int` and `list` are the same
     for value_by_idx, value_by_idx_list in zip(
-        outline_by_index, outline_by_index_list
+        outline_by_index, outline_by_index_list, strict=False
     ):
         assert np.array_equal(value_by_idx, value_by_idx_list)
 
@@ -105,7 +105,7 @@ def test_shape_list_outline():
 
     # Check return value for `int` and `numpy.int_` are the same
     for value_by_idx, value_by_idx_np in zip(
-        outline_by_index, outline_by_index_np
+        outline_by_index, outline_by_index_np, strict=False
     ):
         assert np.array_equal(value_by_idx, value_by_idx_np)
 

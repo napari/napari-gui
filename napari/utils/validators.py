@@ -102,7 +102,7 @@ def _pairwise(iterable: Iterable):
     # shift b by one position
     next(b, None)
     # create tuple pairs from the values in a and b
-    return zip(a, b)
+    return zip(a, b, strict=False)
 
 
 def _validate_increasing(values: Iterable) -> None:

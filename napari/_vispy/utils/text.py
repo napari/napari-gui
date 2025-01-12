@@ -1,5 +1,3 @@
-from typing import Union
-
 import numpy as np
 from vispy.scene.visuals import Text
 
@@ -10,7 +8,7 @@ from napari.layers.utils.string_encoding import ConstantStringEncoding
 def update_text(
     *,
     node: Text,
-    layer: Union[Points, Shapes],
+    layer: Points | Shapes,
 ):
     """Update the vispy text node with a layer's text parameters.
 
@@ -62,7 +60,7 @@ def update_text(
     node.font_size = text_manager.size
 
 
-def _has_visible_text(layer: Union[Points, Shapes]) -> bool:
+def _has_visible_text(layer: Points | Shapes) -> bool:
     text = layer.text
     if not text.visible:
         return False

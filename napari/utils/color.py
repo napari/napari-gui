@@ -1,7 +1,7 @@
 """Contains napari color constants and utilities."""
 
-from collections.abc import Iterator
-from typing import Callable, Union
+from collections.abc import Callable, Iterator
+from typing import Union
 
 import numpy as np
 

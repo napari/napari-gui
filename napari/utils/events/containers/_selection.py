@@ -3,7 +3,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Generic,
-    Optional,
     TypeVar,
     Union,
 )
@@ -62,16 +61,16 @@ class Selection(EventedSet[_T]):
     """
 
     def __init__(self, data: Iterable[_T] = ()) -> None:
-        self._active: Optional[_T] = None
-        self._current_: Optional[_T] = None
+        self._active: _T | None = None
+        self._current_: _T | None = None
         self.events = EmitterGroup(source=self, _current=None, active=None)
         super().__init__(data=data)
         self._update_active()
 
     def _emit_change(
         self,
-        added: Optional[set[_T]] = None,
-        removed: Optional[set[_T]] = None,
+        added: set[_T] | None = None,
+        removed: set[_T] | None = None,
     ) -> None:
         if added is None:
             added = set()
@@ -88,12 +87,12 @@ class Selection(EventedSet[_T]):
         return id(self)
 
     @property
-    def _current(self) -> Optional[_T]:
+    def _current(self) -> _T | None:
         """Get current item."""
         return self._current_
 
     @_current.setter
-    def _current(self, index: Optional[_T]) -> None:
+    def _current(self, index: _T | None) -> None:
         """Set current item."""
         if index == self._current_:
             return
@@ -101,12 +100,12 @@ class Selection(EventedSet[_T]):
         self.events._current(value=index)
 
     @property
-    def active(self) -> Optional[_T]:
+    def active(self) -> _T | None:
         """Return the currently active item or None."""
         return self._active
 
     @active.setter
-    def active(self, value: Optional[_T]) -> None:
+    def active(self, value: _T | None) -> None:
         """Set the active item.
 
         This make `value` the only selected item, and make it current.

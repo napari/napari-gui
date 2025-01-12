@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import typing
 import warnings
-from typing import Any, Literal, Union, cast
+from typing import Any, Literal, cast
 
 import numpy as np
 from scipy import ndimage as ndi
@@ -426,12 +426,12 @@ class Image(IntensityVisualizationMixin, ScalarFieldBase):
         self.events.attenuation()
 
     @property
-    def data(self) -> Union[LayerDataProtocol, MultiScaleData]:
+    def data(self) -> LayerDataProtocol | MultiScaleData:
         """Data, possibly in multiscale wrapper. Obeys LayerDataProtocol."""
         return self._data
 
     @data.setter
-    def data(self, data: Union[LayerDataProtocol, MultiScaleData]) -> None:
+    def data(self, data: LayerDataProtocol | MultiScaleData) -> None:
         self._data_raw = data
         # note, we don't support changing multiscale in an Image instance
         self._data = MultiScaleData(data) if self.multiscale else data  # type: ignore
@@ -503,9 +503,7 @@ class Image(IntensityVisualizationMixin, ScalarFieldBase):
         return cast(InterpolationStr, str(self._interpolation2d))
 
     @interpolation2d.setter
-    def interpolation2d(
-        self, value: Union[InterpolationStr, Interpolation]
-    ) -> None:
+    def interpolation2d(self, value: InterpolationStr | Interpolation) -> None:
         if value == 'bilinear':
             raise ValueError(
                 trans._(
@@ -528,9 +526,7 @@ class Image(IntensityVisualizationMixin, ScalarFieldBase):
         return cast(InterpolationStr, str(self._interpolation3d))
 
     @interpolation3d.setter
-    def interpolation3d(
-        self, value: Union[InterpolationStr, Interpolation]
-    ) -> None:
+    def interpolation3d(self, value: InterpolationStr | Interpolation) -> None:
         if value == 'custom':
             raise NotImplementedError(
                 'custom interpolation is not implemented yet for 3D rendering'

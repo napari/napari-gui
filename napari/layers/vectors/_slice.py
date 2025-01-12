@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Union
+from typing import Any
 
 import numpy as np
 import numpy.typing as npt
@@ -27,7 +27,7 @@ class _VectorSliceResponse:
     """
 
     indices: np.ndarray = field(repr=False)
-    alphas: Union[np.ndarray, float] = field(repr=False)
+    alphas: np.ndarray | float = field(repr=False)
     slice_input: _SliceInput
     request_id: int
 

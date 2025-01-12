@@ -1,7 +1,7 @@
 """guess_rgb, guess_multiscale, guess_labels."""
 
-from collections.abc import Sequence
-from typing import Any, Callable, Literal, Union
+from collections.abc import Callable, Sequence
+from typing import Any, Literal
 
 import numpy as np
 import numpy.typing as npt
@@ -40,8 +40,8 @@ def guess_rgb(shape: tuple[int, ...], min_side_len: int = 30) -> bool:
 
 
 def guess_multiscale(
-    data: Union[MultiScaleData, list, tuple],
-) -> tuple[bool, Union[LayerDataProtocol, Sequence[LayerDataProtocol]]]:
+    data: MultiScaleData | list | tuple,
+) -> tuple[bool, LayerDataProtocol | Sequence[LayerDataProtocol]]:
     """Guess whether the passed data is multiscale, process it accordingly.
 
     If shape of arrays along first axis is strictly decreasing, the data is
@@ -79,7 +79,9 @@ def guess_multiscale(
     if len(sizes) <= 1:
         return False, data
 
-    consistent = all(s1 > s2 for s1, s2 in zip(sizes[:-1], sizes[1:]))
+    consistent = all(
+        s1 > s2 for s1, s2 in zip(sizes[:-1], sizes[1:], strict=False)
+    )
     if all(s == sizes[0] for s in sizes):
         # note: the individual array case should be caught by the first
         # code line in this function, hasattr(ndim) and ndim > 1.

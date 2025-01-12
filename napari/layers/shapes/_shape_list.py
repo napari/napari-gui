@@ -2,7 +2,7 @@ import typing
 from collections.abc import Generator, Iterable, Sequence
 from contextlib import contextmanager
 from functools import cached_property, wraps
-from typing import Literal, Union
+from typing import Literal
 
 import numpy as np
 import numpy.typing as npt
@@ -305,7 +305,7 @@ class ShapeList:
 
     def add(
         self,
-        shape: Union[Shape, Sequence[Shape]],
+        shape: Shape | Sequence[Shape],
         face_color=None,
         edge_color=None,
         shape_index=None,
@@ -573,7 +573,7 @@ class ShapeList:
             )
 
         for shape, face_color, edge_color in zip(
-            shapes, face_colors, edge_colors
+            shapes, face_colors, edge_colors, strict=False
         ):
             shape_index = len(self.shapes)
             self.shapes.append(shape)
@@ -1026,7 +1026,7 @@ class ShapeList:
         self._clear_cache()
 
     def outline(
-        self, indices: Union[int, Sequence[int]]
+        self, indices: int | Sequence[int]
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Finds outlines of shapes listed in indices
 
@@ -1082,7 +1082,10 @@ class ShapeList:
             [0] + [len(s._edge_vertices) for s in shapes_list]
         )
         triangles = np.vstack(
-            [s._edge_triangles + c for s, c in zip(shapes_list, vert_count)]
+            [
+                s._edge_triangles + c
+                for s, c in zip(shapes_list, vert_count, strict=False)
+            ]
         )
 
         return centers, offsets, triangles

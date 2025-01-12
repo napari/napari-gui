@@ -65,7 +65,7 @@ def get_reference_edge_triangulation_points(shape: Shapes) -> np.ndarray:
     path_list = [(x.data, x._closed) for x in shapes]
     mesh_list = [generate_2D_edge_meshes(path, closed)
                  for path, closed in path_list]
-    mesh = tuple(np.concatenate(el, axis=0) for el in zip(*mesh_list))
+    mesh = tuple(np.concatenate(el, axis=0) for el in zip(*mesh_list, strict=False))
 
     return mesh[0] + mesh[1]
 
@@ -269,7 +269,7 @@ def get_helper_data_from_shapes(shapes_layer: Shapes) -> Helpers:
     mesh_list = [(s._edge_vertices, s._edge_offsets, s._edge_triangles)
                  for s in shapes]
     path_list = [(s.data, s._closed) for s in shapes]
-    mesh = tuple(np.concatenate(el, axis=0) for el in zip(*mesh_list))
+    mesh = tuple(np.concatenate(el, axis=0) for el in zip(*mesh_list, strict=False))
     face_mesh_list = [(s._face_vertices, s._face_triangles)
                       for s in shapes
                       if len(s._face_vertices) > 0]
@@ -321,7 +321,7 @@ def add_helper_layers(viewer: napari.Viewer, source_layer):
     colors = ['yellow', 'white', 'red', 'blue',
               'green', 'yellow', 'pink', 'magenta']
     for (name, data), size, color in zip(
-            asdict(helpers).items(), sizes, colors
+            asdict(helpers).items(), sizes, colors, strict=False
             ):
         if 'points' in name:
             viewer.add_points(data, name=name, size=size, face_color=color)

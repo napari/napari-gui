@@ -41,7 +41,7 @@ from functools import partial
 from itertools import chain
 from multiprocessing.pool import ThreadPool
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 from weakref import WeakKeyDictionary
 
 from npe2 import PackageMetadata
@@ -99,7 +99,9 @@ def layer_data_and_types():
     extensions = ['.tif', '.tif', '.csv', '.csv']
     layer_data = [layer.as_layer_data_tuple() for layer in layers]
     layer_types = [layer._type_string for layer in layers]
-    filenames = [layer.name + e for layer, e in zip(layers, extensions)]
+    filenames = [
+        layer.name + e for layer, e in zip(layers, extensions, strict=False)
+    ]
     return layers, layer_data, layer_types, filenames
 
 
@@ -1037,7 +1039,7 @@ class NapariTerminalReporter(CustomTerminalReporter):
     It is created to be able to see if timeout is caused by long time execution, or it is just hanging.
     """
 
-    currentfspath: Optional[Path]
+    currentfspath: Path | None
 
     def write_fspath_result(self, nodeid: str, res, **markup: bool) -> None:
         if getattr(self, '_start_time', None) is None:

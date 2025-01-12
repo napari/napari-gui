@@ -4,7 +4,7 @@ import types
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from contextlib import nullcontext
-from typing import TYPE_CHECKING, Optional, Union, cast
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 from numpy import typing as npt
@@ -322,7 +322,7 @@ class ScalarFieldBase(Layer, ABC):
     @property
     def data_raw(
         self,
-    ) -> Union[LayerDataProtocol, Sequence[LayerDataProtocol]]:
+    ) -> LayerDataProtocol | Sequence[LayerDataProtocol]:
         """Data, exactly as provided by the user."""
         return self._data_raw
 
@@ -405,7 +405,7 @@ class ScalarFieldBase(Layer, ABC):
         return str(self._depiction)
 
     @depiction.setter
-    def depiction(self, depiction: Union[str, VolumeDepiction]) -> None:
+    def depiction(self, depiction: str | VolumeDepiction) -> None:
         """Set the current 3D depiction mode."""
         self._depiction = VolumeDepiction(depiction)
         self._update_plane_callbacks()
@@ -444,7 +444,7 @@ class ScalarFieldBase(Layer, ABC):
         return self._plane
 
     @plane.setter
-    def plane(self, value: Union[dict, SlicingPlane]) -> None:
+    def plane(self, value: dict | SlicingPlane) -> None:
         self._plane.update(value)
         self.events.plane()
 
@@ -580,7 +580,7 @@ class ScalarFieldBase(Layer, ABC):
         else:
             coord = coord[self._slice_input.displayed]
 
-        if all(0 <= c < s for c, s in zip(coord, shape)):
+        if all(0 <= c < s for c, s in zip(coord, shape, strict=False)):
             value = raw[tuple(coord)]
         else:
             value = None
@@ -592,10 +592,10 @@ class ScalarFieldBase(Layer, ABC):
 
     def _get_value_ray(
         self,
-        start_point: Optional[np.ndarray],
-        end_point: Optional[np.ndarray],
+        start_point: np.ndarray | None,
+        end_point: np.ndarray | None,
         dims_displayed: list[int],
-    ) -> Optional[int]:
+    ) -> int | None:
         """Get the first non-background value encountered along a ray.
 
         Parameters
@@ -663,10 +663,10 @@ class ScalarFieldBase(Layer, ABC):
 
     def _get_value_3d(
         self,
-        start_point: Optional[np.ndarray],
-        end_point: Optional[np.ndarray],
+        start_point: np.ndarray | None,
+        end_point: np.ndarray | None,
         dims_displayed: list[int],
-    ) -> Optional[int]:
+    ) -> int | None:
         """Get the first non-background value encountered along a ray.
 
         Parameters

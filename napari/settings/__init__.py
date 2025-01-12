@@ -23,7 +23,7 @@ SETTINGS = _SettingsProxy()
 
 # private global object
 # will be populated on first call of get_settings
-_SETTINGS: Optional[NapariSettings] = None
+_SETTINGS: NapariSettings | None = None
 
 
 def get_settings(path=_NOT_SET) -> NapariSettings:

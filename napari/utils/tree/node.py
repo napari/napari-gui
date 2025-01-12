@@ -1,5 +1,5 @@
 from collections.abc import Generator
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from napari.utils.translations import trans
 
@@ -30,7 +30,7 @@ class Node:
     """
 
     def __init__(self, name: str = 'Node') -> None:
-        self.parent: Optional[Group] = None
+        self.parent: Group | None = None
         self._name = name
 
     @property
@@ -48,7 +48,7 @@ class Node:
         """
         return False
 
-    def index_in_parent(self) -> Optional[int]:
+    def index_in_parent(self) -> int | None:
         """Return index of this Node in its parent, or None if no parent."""
         return self.parent.index(self) if self.parent is not None else None
 

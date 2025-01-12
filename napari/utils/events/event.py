@@ -54,11 +54,10 @@ import inspect
 import os
 import warnings
 import weakref
-from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from functools import partial
 from typing import (
     Any,
-    Callable,
     Generic,
     Literal,
     Optional,
@@ -288,18 +287,18 @@ class EventEmitter:
     def __init__(
         self,
         source: Any = None,
-        type_name: Optional[str] = None,
+        type_name: str | None = None,
         event_class: type[Event] = Event,
     ) -> None:
         # connected callbacks
-        self._callbacks: list[Union[Callback, CallbackRef]] = []
+        self._callbacks: list[Callback | CallbackRef] = []
         # used when connecting new callbacks at specific positions
-        self._callback_refs: list[Optional[str]] = []
+        self._callback_refs: list[str | None] = []
         self._callback_pass_event: list[bool] = []
 
         # count number of times this emitter is blocked for each callback.
-        self._blocked: dict[Optional[Callback], int] = {None: 0}
-        self._block_counter: _WeakCounter[Optional[Callback]] = _WeakCounter()
+        self._blocked: dict[Callback | None, int] = {None: 0}
+        self._block_counter: _WeakCounter[Callback | None] = _WeakCounter()
 
         # used to detect emitter loops
         self._emitting = False
@@ -356,12 +355,12 @@ class EventEmitter:
         self._print_callback_errors = val
 
     @property
-    def callback_refs(self) -> tuple[Optional[str], ...]:
+    def callback_refs(self) -> tuple[str | None, ...]:
         """The set of callback references"""
         return tuple(self._callback_refs)
 
     @property
-    def callbacks(self) -> tuple[Union[Callback, CallbackRef], ...]:
+    def callbacks(self) -> tuple[Callback | CallbackRef, ...]:
         """The set of callbacks"""
         return tuple(self._callbacks)
 
@@ -376,9 +375,7 @@ class EventEmitter:
     def source(self, s):
         self._source = None if s is None else weakref.ref(s)
 
-    def _is_core_callback(
-        self, callback: Union[CallbackRef, Callback], core: str
-    ):
+    def _is_core_callback(self, callback: CallbackRef | Callback, core: str):
         """
         Check if the callback is a core callback
 
@@ -409,10 +406,10 @@ class EventEmitter:
     def connect(
         self,
         callback: Union[Callback, CallbackRef, CallbackStr, 'EventEmitter'],
-        ref: Union[bool, str] = False,
+        ref: bool | str = False,
         position: Literal['first', 'last'] = 'last',
-        before: Union[str, Callback, list[Union[str, Callback]], None] = None,
-        after: Union[str, Callback, list[Union[str, Callback]], None] = None,
+        before: str | Callback | list[str | Callback] | None = None,
+        after: str | Callback | list[str | Callback] | None = None,
         until: Optional['EventEmitter'] = None,
     ):
         """Connect this emitter to a new callback.
@@ -476,7 +473,7 @@ class EventEmitter:
             return None
 
         # deal with the ref
-        _ref: Union[str, None]
+        _ref: str | None
         if isinstance(ref, bool):
             if ref:
                 if isinstance(callback, tuple):
@@ -536,7 +533,9 @@ class EventEmitter:
                 for c in criteria:
                     count = sum(
                         c in [cn, cc]
-                        for cn, cc in zip(callback_refs, callbacks)
+                        for cn, cc in zip(
+                            callback_refs, callbacks, strict=False
+                        )
                     )
                     if count != 1:
                         raise ValueError(
@@ -552,7 +551,7 @@ class EventEmitter:
                 matches = [
                     ci
                     for ci, (cn, cc) in enumerate(
-                        zip(callback_refs, callbacks)
+                        zip(callback_refs, callbacks, strict=False)
                     )
                     if (cc in criteria or cn in criteria)
                 ]
@@ -580,7 +579,7 @@ class EventEmitter:
         return old_callback  # allows connect to be used as a decorator
 
     def disconnect(
-        self, callback: Union[Callback, CallbackRef, None, object] = None
+        self, callback: Callback | CallbackRef | None | object = None
     ):
         """Disconnect a callback from this emitter.
 
@@ -667,9 +666,7 @@ class EventEmitter:
             for x in signature.parameters.values()
         )
 
-    def _normalize_cb(
-        self, callback
-    ) -> tuple[Union[CallbackRef, Callback], bool]:
+    def _normalize_cb(self, callback) -> tuple[CallbackRef | Callback, bool]:
         # dereference methods into a (self, method_name) pair so that we can
         # make the connection without making a strong reference to the
         # instance.
@@ -733,7 +730,7 @@ class EventEmitter:
 
             rem: list[CallbackRef] = []
             for cb, pass_event in zip(
-                self._callbacks[:], self._callback_pass_event[:]
+                self._callbacks[:], self._callback_pass_event[:], strict=False
             ):
                 if isinstance(cb, tuple):
                     obj = cb[0]()
@@ -782,7 +779,7 @@ class EventEmitter:
         return event
 
     def _invoke_callback(
-        self, cb: Union[Callback, Callable[[], None]], event: Optional[Event]
+        self, cb: Callback | Callable[[], None], event: Event | None
     ):
         try:
             if event is not None:
@@ -827,13 +824,13 @@ class EventEmitter:
             )
         return event
 
-    def blocked(self, callback: Optional[Callback] = None) -> bool:
+    def blocked(self, callback: Callback | None = None) -> bool:
         """Return boolean indicating whether the emitter is blocked for
         the given callback.
         """
         return self._blocked.get(callback, 0) > 0
 
-    def block(self, callback: Optional[Callback] = None):
+    def block(self, callback: Callback | None = None):
         """Block this emitter. Any attempts to emit an event while blocked
         will be silently ignored. If *callback* is given, then the emitter
         is only blocked for that specific callback.
@@ -843,7 +840,7 @@ class EventEmitter:
         """
         self._blocked[callback] = self._blocked.get(callback, 0) + 1
 
-    def unblock(self, callback: Optional[Callback] = None):
+    def unblock(self, callback: Callback | None = None):
         """Unblock this emitter. See :func:`event.EventEmitter.block`.
 
         Note: Use of ``unblock(None)`` only reverses the effect of
@@ -865,7 +862,7 @@ class EventEmitter:
         else:
             self._blocked[callback] = b
 
-    def blocker(self, callback: Optional[Callback] = None):
+    def blocker(self, callback: Callback | None = None):
         """Return an EventBlocker to be used in 'with' statements
 
         Notes
@@ -963,7 +960,7 @@ class EmitterGroup(EventEmitter):
         self,
         source: Any = None,
         auto_connect: bool = False,
-        **emitters: Union[type[Event], EventEmitter, None],
+        **emitters: type[Event] | EventEmitter | None,
     ) -> None:
         EventEmitter.__init__(self, source)
 
@@ -986,7 +983,7 @@ class EmitterGroup(EventEmitter):
         return self._emitters[name]
 
     def __setitem__(
-        self, name: str, emitter: Union[type[Event], EventEmitter, None]
+        self, name: str, emitter: type[Event] | EventEmitter | None
     ):
         """
         Alias for EmitterGroup.add(name=emitter)
@@ -995,8 +992,8 @@ class EmitterGroup(EventEmitter):
 
     def add(
         self,
-        auto_connect: Optional[bool] = None,
-        **kwargs: Union[type[Event], EventEmitter, None],
+        auto_connect: bool | None = None,
+        **kwargs: type[Event] | EventEmitter | None,
     ):
         """Add one or more EventEmitter instances to this emitter group.
         Each keyword argument may be specified as either an EventEmitter
@@ -1106,10 +1103,10 @@ class EmitterGroup(EventEmitter):
     def connect(
         self,
         callback: Union[Callback, CallbackRef, EventEmitter, 'EmitterGroup'],
-        ref: Union[bool, str] = False,
+        ref: bool | str = False,
         position: Literal['first', 'last'] = 'first',
-        before: Union[str, Callback, list[Union[str, Callback]], None] = None,
-        after: Union[str, Callback, list[Union[str, Callback]], None] = None,
+        before: str | Callback | list[str | Callback] | None = None,
+        after: str | Callback | list[str | Callback] | None = None,
     ):
         """Connect the callback to the event group. The callback will receive
         events from *all* of the emitters in the group.
@@ -1122,7 +1119,7 @@ class EmitterGroup(EventEmitter):
             self, callback, ref, position, before, after
         )
 
-    def disconnect(self, callback: Optional[Callback] = None):
+    def disconnect(self, callback: Callback | None = None):
         """Disconnect the callback from this group. See
         :func:`connect() <vispy.event.EmitterGroup.connect>` and
         :func:`EventEmitter.connect() <vispy.event.EventEmitter.connect>` for

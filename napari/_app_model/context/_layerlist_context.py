@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import contextlib
+from collections.abc import Callable
 from functools import partial
-from typing import TYPE_CHECKING, Callable, Optional, Union
+from typing import TYPE_CHECKING, Optional
 from weakref import ref
 
 from app_model.expressions import ContextKey
@@ -23,7 +24,7 @@ if TYPE_CHECKING:
     LayerSel = Selection[Layer]
 
 
-def _len(layers: Union[LayerSel, LayerList]) -> int:
+def _len(layers: LayerSel | LayerList) -> int:
     return len(layers)
 
 
@@ -113,15 +114,15 @@ def _n_selected_tracks(s: LayerSel) -> int:
     return sum(x._type_string == 'tracks' for x in s)
 
 
-def _active_type(s: LayerSel) -> Optional[str]:
+def _active_type(s: LayerSel) -> str | None:
     return s.active._type_string if s.active else None
 
 
-def _active_ndim(s: LayerSel) -> Optional[int]:
+def _active_ndim(s: LayerSel) -> int | None:
     return getattr(s.active.data, 'ndim', None) if s.active else None
 
 
-def _active_shape(s: LayerSel) -> Optional[tuple[int, ...]]:
+def _active_shape(s: LayerSel) -> tuple[int, ...] | None:
     return getattr(s.active.data, 'shape', None) if s.active else None
 
 

@@ -1,7 +1,7 @@
 import warnings
 from collections.abc import Sequence
 from copy import deepcopy
-from typing import Any, Optional, Union
+from typing import Any, Union
 
 import numpy as np
 import pandas as pd
@@ -185,7 +185,7 @@ class TextManager(EventedModel):
         colors = self.color(features)
         self.color._append(colors)
 
-    def remove(self, indices_to_remove: Union[range, set, list, np.ndarray]):
+    def remove(self, indices_to_remove: range | set | list | np.ndarray):
         """Remove the indicated text elements
 
         Parameters
@@ -229,7 +229,7 @@ class TextManager(EventedModel):
         self,
         view_data: np.ndarray,
         ndisplay: int,
-        order: Optional[tuple[int, ...]] = None,
+        order: tuple[int, ...] | None = None,
     ) -> tuple[np.ndarray, str, str]:
         """Calculate the coordinates for each text element in view
 

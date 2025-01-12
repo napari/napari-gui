@@ -6,7 +6,7 @@ localization data.
 import gettext
 import os
 from pathlib import Path
-from typing import ClassVar, Optional, Union
+from typing import ClassVar
 
 from yaml import safe_load
 
@@ -199,11 +199,11 @@ class TranslationString(str):
 
     def __new__(
         cls,
-        domain: Optional[str] = None,
-        msgctxt: Optional[str] = None,
-        msgid: Optional[str] = None,
-        msgid_plural: Optional[str] = None,
-        n: Optional[str] = None,
+        domain: str | None = None,
+        msgctxt: str | None = None,
+        msgid: str | None = None,
+        msgid_plural: str | None = None,
+        n: str | None = None,
         deferred: bool = False,
         **kwargs,
     ):
@@ -228,9 +228,9 @@ class TranslationString(str):
         self,
         domain: str,
         msgid: str,
-        msgctxt: Optional[str] = None,
-        msgid_plural: Optional[str] = None,
-        n: Optional[int] = None,
+        msgctxt: str | None = None,
+        msgid_plural: str | None = None,
+        n: int | None = None,
         deferred: bool = False,
         **kwargs,
     ) -> None:
@@ -382,9 +382,9 @@ class TranslationBundle:
         self,
         *,
         msgid: str,
-        msgctxt: Optional[str] = None,
-        msgid_plural: Optional[str] = None,
-        n: Optional[int] = None,
+        msgctxt: str | None = None,
+        msgid_plural: str | None = None,
+        n: int | None = None,
         **kwargs,
     ) -> str:
         """
@@ -435,7 +435,7 @@ class TranslationBundle:
 
     def _(
         self, msgid: str, deferred: bool = False, **kwargs
-    ) -> Union[TranslationString, str]:
+    ) -> TranslationString | str:
         """
         Shorthand for `gettext.gettext` with enhanced functionality.
 
@@ -468,9 +468,9 @@ class TranslationBundle:
         msgid: str,
         msgid_plural: str,
         n: int,
-        deferred: Optional[bool] = False,
+        deferred: bool | None = False,
         **kwargs,
-    ) -> Union[TranslationString, str]:
+    ) -> TranslationString | str:
         """
         Shorthand for `gettext.ngettext` with enhanced functionality.
 
@@ -513,9 +513,9 @@ class TranslationBundle:
         self,
         msgctxt: str,
         msgid: str,
-        deferred: Optional[bool] = False,
+        deferred: bool | None = False,
         **kwargs,
-    ) -> Union[TranslationString, str]:
+    ) -> TranslationString | str:
         """
         Shorthand for `gettext.pgettext` with enhanced functionality.
 
@@ -555,9 +555,9 @@ class TranslationBundle:
         msgid: str,
         msgid_plural: str,
         n: int,
-        deferred: Optional[bool] = False,
+        deferred: bool | None = False,
         **kwargs,
-    ) -> Union[TranslationString, str]:
+    ) -> TranslationString | str:
         """
         Shorthand for `gettext.npgettext` with enhanced functionality.
 

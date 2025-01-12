@@ -2,7 +2,7 @@
 
 import os
 import threading
-from typing import NamedTuple, Optional
+from typing import NamedTuple
 
 
 class Span(NamedTuple):
@@ -90,9 +90,9 @@ class PerfEvent:
         name: str,
         start_ns: int,
         end_ns: int,
-        category: Optional[str] = None,
-        process_id: Optional[int] = None,
-        thread_id: Optional[int] = None,
+        category: str | None = None,
+        process_id: int | None = None,
+        thread_id: int | None = None,
         phase: str = 'X',  # "X" is a "complete event" in their spec.
         **kwargs: float,
     ) -> None:
@@ -103,7 +103,7 @@ class PerfEvent:
 
         self.name: str = name
         self.span: Span = Span(start_ns, end_ns)
-        self.category: Optional[str] = category
+        self.category: str | None = category
         self.origin: Origin = Origin(process_id, thread_id)
         self.args = kwargs
         self.phase: str = phase

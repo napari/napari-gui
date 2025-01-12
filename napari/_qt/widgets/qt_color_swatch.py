@@ -1,5 +1,5 @@
 import re
-from typing import Optional, Union
+from typing import Union
 
 import numpy as np
 from qtpy.QtCore import QEvent, Qt, Signal, Slot
@@ -74,10 +74,10 @@ class QColorSwatchEdit(QWidget):
 
     def __init__(
         self,
-        parent: Optional[QWidget] = None,
+        parent: QWidget | None = None,
         *,
-        initial_color: Optional[AnyColorType] = None,
-        tooltip: Optional[str] = None,
+        initial_color: AnyColorType | None = None,
+        tooltip: str | None = None,
     ) -> None:
         super().__init__(parent=parent)
         self.setObjectName('QColorSwatchEdit')
@@ -147,9 +147,9 @@ class QColorSwatch(QFrame):
 
     def __init__(
         self,
-        parent: Optional[QWidget] = None,
-        tooltip: Optional[str] = None,
-        initial_color: Optional[ColorType] = None,
+        parent: QWidget | None = None,
+        tooltip: str | None = None,
+        initial_color: ColorType | None = None,
     ) -> None:
         super().__init__(parent)
         self.setObjectName('colorSwatch')

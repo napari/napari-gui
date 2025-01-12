@@ -12,17 +12,14 @@ import os
 import re
 import sys
 import warnings
-from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from enum import Enum, EnumMeta
 from os import fspath, path as os_path
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
-    Optional,
     TypeVar,
-    Union,
 )
 
 import numpy as np
@@ -131,7 +128,7 @@ def str_to_rgb(arg: str) -> list[int]:
 
 
 def ensure_iterable(
-    arg: Union[None, str, Enum, float, list, npt.NDArray],
+    arg: None | str | Enum | float | list | npt.NDArray,
     color: object | bool = _sentinel,
 ):
     """Ensure an argument is an iterable. Useful when an input argument
@@ -156,7 +153,7 @@ def ensure_iterable(
 
 
 def is_iterable(
-    arg: Union[None, str, Enum, float, list, npt.NDArray],
+    arg: None | str | Enum | float | list | npt.NDArray,
     color: object | bool = _sentinel,
     allow_none: bool = False,
 ) -> bool:
@@ -206,7 +203,7 @@ def is_sequence(arg: Any) -> bool:
 
 def ensure_sequence_of_iterables(
     obj: Any,
-    length: Optional[int] = None,
+    length: int | None = None,
     repeat_empty: bool = False,
     allow_none: bool = False,
 ):
@@ -596,7 +593,7 @@ def _is_array_type(array: npt.ArrayLike, type_name: str) -> bool:
 
 
 def dir_hash(
-    path: Union[str, Path],
+    path: str | Path,
     include_paths: bool = True,
     ignore_hidden: bool = True,
 ) -> str:
@@ -640,7 +637,7 @@ def dir_hash(
 
 
 def paths_hash(
-    paths: Iterable[Union[str, Path]],
+    paths: Iterable[str | Path],
     include_paths: bool = True,
     ignore_hidden: bool = True,
 ) -> str:

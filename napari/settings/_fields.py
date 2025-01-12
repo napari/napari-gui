@@ -1,7 +1,7 @@
 import re
 from dataclasses import dataclass
 from functools import total_ordering
-from typing import Any, Optional, SupportsInt, Union
+from typing import Any, SupportsInt
 
 from napari.utils.theme import available_themes, is_theme_available
 from napari.utils.translations import _load_language, get_language_packs, trans
@@ -96,8 +96,8 @@ class Version:
     major: SupportsInt
     minor: SupportsInt = 0
     patch: SupportsInt = 0
-    prerelease: Union[bytes, str, int, None] = None
-    build: Union[bytes, str, int, None] = None
+    prerelease: bytes | str | int | None = None
+    build: bytes | str | int | None = None
 
     _SEMVER_PATTERN = re.compile(
         r"""
@@ -121,7 +121,7 @@ class Version:
     )
 
     @classmethod
-    def parse(cls, version: Union[bytes, str]) -> 'Version':
+    def parse(cls, version: bytes | str) -> 'Version':
         """Convert string or bytes into Version object."""
         if isinstance(version, bytes):
             version = version.decode('UTF-8')
@@ -170,7 +170,7 @@ class Version:
             )
         return other
 
-    def to_tuple(self) -> tuple[int, int, int, Optional[str], Optional[str]]:
+    def to_tuple(self) -> tuple[int, int, int, str | None, str | None]:
         """Return version as tuple (first three are int, last two Opt[str])."""
         return (
             int(self.major),

@@ -1,5 +1,5 @@
 import typing
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 from weakref import WeakSet
 
 import magicgui as mgui
@@ -92,7 +92,7 @@ class Viewer(ViewerModel):
 
     def export_figure(
         self,
-        path: Optional[str] = None,
+        path: str | None = None,
         *,
         scale_factor: float = 1,
         flash: bool = False,
@@ -145,10 +145,10 @@ class Viewer(ViewerModel):
 
     def screenshot(
         self,
-        path: Optional[str] = None,
+        path: str | None = None,
         *,
-        size: Optional[tuple[str, str]] = None,
-        scale: Optional[float] = None,
+        size: tuple[str, str] | None = None,
+        scale: float | None = None,
         canvas_only: bool = True,
         flash: bool = False,
     ):
@@ -229,7 +229,7 @@ class Viewer(ViewerModel):
         return ret
 
 
-def current_viewer() -> Optional[Viewer]:
+def current_viewer() -> Viewer | None:
     """Return the currently active napari viewer."""
     try:
         from napari._qt.qt_main_window import _QtMainWindow

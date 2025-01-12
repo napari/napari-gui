@@ -1,5 +1,5 @@
 from collections.abc import Iterable, Sequence
-from typing import Generic, Optional, TypeVar, Union, overload
+from typing import Generic, TypeVar, overload
 
 import numpy as np
 import numpy.typing as npt
@@ -123,9 +123,7 @@ _T = TypeVar('_T', bound=Transform)
 
 
 class TransformChain(EventedList[_T], Transform, Generic[_T]):
-    def __init__(
-        self, transforms: Optional[Iterable[Transform]] = None
-    ) -> None:
+    def __init__(self, transforms: Iterable[Transform] | None = None) -> None:
         if transforms is None:
             transforms = []
         super().__init__(
@@ -429,13 +427,13 @@ class Affine(Transform):
         ),
         *,
         affine_matrix=None,
-        axis_labels: Optional[Sequence[str]] = None,
+        axis_labels: Sequence[str] | None = None,
         linear_matrix=None,
         name=None,
         ndim=None,
         rotate=None,
         shear=None,
-        units: Optional[Sequence[Union[str, pint.Unit]]] = None,
+        units: Sequence[str | pint.Unit] | None = None,
     ) -> None:
         super().__init__(name=name)
         self._upper_triangular = True
@@ -506,7 +504,7 @@ class Affine(Transform):
         return self._axis_labels
 
     @axis_labels.setter
-    def axis_labels(self, axis_labels: Optional[Sequence[str]]) -> None:
+    def axis_labels(self, axis_labels: Sequence[str] | None) -> None:
         if axis_labels is None:
             axis_labels = tuple(f'axis {i}' for i in range(-self.ndim, 0))
         if len(axis_labels) != self.ndim:
@@ -522,7 +520,7 @@ class Affine(Transform):
         return self._units
 
     @units.setter
-    def units(self, units: Optional[Sequence[pint.Unit]]) -> None:
+    def units(self, units: Sequence[pint.Unit] | None) -> None:
         units = get_units_from_name(units)
         if units is None:
             units = (pint.get_application_registry().pixel,) * self.ndim

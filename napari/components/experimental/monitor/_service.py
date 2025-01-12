@@ -98,7 +98,6 @@ import logging
 import os
 import subprocess
 from multiprocessing.managers import SharedMemoryManager
-from typing import Union
 
 from napari.components.experimental.monitor._utils import base64_encoded_json
 
@@ -109,7 +108,7 @@ START_CLIENTS = True
 
 # We pass the data in this template to each client as an encoded
 # NAPARI_MON_CLIENT environment variable.
-client_config_template: dict[str, Union[str, int]] = {
+client_config_template: dict[str, str | int] = {
     'server_port': '<number>',
 }
 

@@ -8,7 +8,7 @@ In particular, these cover the stateful part of the StyleEncoding, which
 is important to napari at the time of writing, but may be removed in the future.
 """
 
-from typing import Any, Union
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -238,7 +238,7 @@ class VectorDirectEncoding(_DerivedStyleEncoding[Vector, VectorArray]):
     feature: str
     fallback: Vector = Field(default_factory=lambda: np.array([-1, -1]))
 
-    def __call__(self, features: Any) -> Union[Vector, VectorArray]:
+    def __call__(self, features: Any) -> Vector | VectorArray:
         return VectorArray.validate_type(list(features[self.feature]))
 
 

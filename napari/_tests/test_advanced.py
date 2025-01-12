@@ -244,7 +244,10 @@ def test_changing_display_surface(make_napari_viewer):
     data = (vertices, faces, values)
     viewer.add_surface(data)
     assert np.all(
-        [np.array_equal(vd, d) for vd, d in zip(viewer.layers[0].data, data)]
+        [
+            np.array_equal(vd, d)
+            for vd, d in zip(viewer.layers[0].data, data, strict=False)
+        ]
     )
 
     assert len(viewer.layers) == 1

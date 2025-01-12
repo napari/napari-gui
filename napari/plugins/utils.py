@@ -5,7 +5,6 @@ from enum import IntFlag
 from fnmatch import fnmatch
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional, Union
 
 from npe2 import PluginManifest
 
@@ -98,7 +97,7 @@ def _get_preferred_readers(path: PathLike) -> list[tuple[str, str]]:
     return ret
 
 
-def get_preferred_reader(path: PathLike) -> Optional[str]:
+def get_preferred_reader(path: PathLike) -> str | None:
     """Given filepath, find the best matching reader from the preferences.
 
     Parameters
@@ -191,7 +190,7 @@ def get_filename_patterns_for_reader(plugin_name: str):
         set of filename patterns accepted by all plugin's reader contributions
     """
     all_fn_patterns: set[str] = set()
-    current_plugin: Union[PluginManifest, None] = None
+    current_plugin: PluginManifest | None = None
     for manifest in _npe2.iter_manifests():
         if manifest.name == plugin_name:
             current_plugin = manifest

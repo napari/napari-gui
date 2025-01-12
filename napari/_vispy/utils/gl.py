@@ -3,7 +3,7 @@
 from collections.abc import Generator
 from contextlib import contextmanager
 from functools import lru_cache
-from typing import Any, Union, cast
+from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -99,7 +99,7 @@ def fix_data_dtype(data: npt.NDArray) -> npt.NDArray:
 
     try:
         dtype_ = cast(
-            'type[Union[np.unsignedinteger[Any], np.floating[Any]]]',
+            'type[np.unsignedinteger[Any] | np.floating[Any]]',
             {
                 'i': np.float32,
                 'f': np.float32,

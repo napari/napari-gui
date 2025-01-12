@@ -1,6 +1,5 @@
 from collections import OrderedDict
 from enum import auto
-from typing import Union
 
 from napari.utils.misc import StringEnum
 from napari.utils.translations import trans
@@ -93,7 +92,7 @@ SYMBOL_TRANSLATION = OrderedDict(
 SYMBOL_TRANSLATION_INVERTED = {v: k for k, v in SYMBOL_TRANSLATION.items()}
 
 
-SYMBOL_DICT: dict[Union[str, Symbol], Symbol] = {x: x for x in Symbol}
+SYMBOL_DICT: dict[str | Symbol, Symbol] = {x: x for x in Symbol}
 SYMBOL_DICT.update({str(x): x for x in Symbol})
 SYMBOL_DICT.update(SYMBOL_TRANSLATION_INVERTED)  # type: ignore[arg-type]
 SYMBOL_DICT.update(SYMBOL_ALIAS)  # type: ignore[arg-type]

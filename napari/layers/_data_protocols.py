@@ -76,7 +76,7 @@ class LayerDataProtocol(Protocol):
         """Array dimensions."""
 
     def __getitem__(
-        self, key: Union[Index, tuple[Index, ...], LayerDataProtocol]
+        self, key: Index | tuple[Index, ...] | LayerDataProtocol
     ) -> LayerDataProtocol:
         """Returns self[key]."""
 

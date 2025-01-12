@@ -1,5 +1,4 @@
 import os
-from typing import Optional, Union
 
 from qtpy.QtWidgets import (
     QButtonGroup,
@@ -25,7 +24,7 @@ class QtReaderDialog(QDialog):
         self,
         pth: str = '',
         parent: QWidget = None,
-        readers: Optional[dict[str, str]] = None,
+        readers: dict[str, str] | None = None,
         error_message: str = '',
         persist_checked: bool = False,
     ) -> None:
@@ -154,9 +153,9 @@ class QtReaderDialog(QDialog):
 def handle_gui_reading(
     paths: list[str],
     qt_viewer,
-    stack: Union[bool, list[list[str]]],
-    plugin_name: Optional[str] = None,
-    error: Optional[ReaderPluginError] = None,
+    stack: bool | list[list[str]],
+    plugin_name: str | None = None,
+    error: ReaderPluginError | None = None,
     plugin_override: bool = False,
     **kwargs,
 ):
@@ -212,8 +211,8 @@ def handle_gui_reading(
 
 def prepare_remaining_readers(
     paths: list[str],
-    plugin_name: Optional[str] = None,
-    error: Optional[ReaderPluginError] = None,
+    plugin_name: str | None = None,
+    error: ReaderPluginError | None = None,
 ):
     """Remove tried plugin from readers and raise error if no readers remain.
 

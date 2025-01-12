@@ -16,9 +16,7 @@ from __future__ import annotations
 
 import weakref
 from functools import cache, partial
-from typing import TYPE_CHECKING, Any, Optional
-
-from typing_extensions import get_args
+from typing import TYPE_CHECKING, Any, get_args
 
 from napari.utils._proxies import PublicOnlyProxy
 
@@ -205,7 +203,7 @@ def add_future_data(gui, future: Future, return_type, _from_tuple=True):
         )
 
 
-def find_viewer_ancestor(widget) -> Optional[Viewer]:
+def find_viewer_ancestor(widget) -> Viewer | None:
     """Return the closest parent Viewer of ``widget``.
 
     Priority is given to `Viewer` ancestors of ``widget``.
@@ -244,7 +242,7 @@ def find_viewer_ancestor(widget) -> Optional[Viewer]:
     return current_viewer()
 
 
-def proxy_viewer_ancestor(widget) -> Optional[PublicOnlyProxy[Viewer]]:
+def proxy_viewer_ancestor(widget) -> PublicOnlyProxy[Viewer] | None:
     if viewer := find_viewer_ancestor(widget):
         return PublicOnlyProxy(viewer)
     return None

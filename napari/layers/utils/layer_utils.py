@@ -3,14 +3,11 @@ from __future__ import annotations
 import functools
 import inspect
 import warnings
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import (
     TYPE_CHECKING,
     Any,
-    Callable,
     NamedTuple,
-    Optional,
-    Union,
 )
 
 import dask
@@ -60,7 +57,7 @@ def register_layer_action(
     keymapprovider,
     description: str,
     repeatable: bool = False,
-    shortcuts: Optional[Union[str, list[str]]] = None,
+    shortcuts: str | list[str] | None = None,
 ) -> Callable[[Callable], Callable]:
     """
     Convenient decorator to register an action with the current Layers
@@ -237,8 +234,8 @@ def calc_data_range(
             max_val = max(max_val, 1)
         return float(min_val), float(max_val)
 
-    center: Union[int, list[int]]
-    reduced_data: Union[list, LayerDataProtocol]
+    center: int | list[int]
+    reduced_data: list | LayerDataProtocol
     if data.size > 1e7 and (data.ndim == 1 or (rgb and data.ndim == 2)):
         # If data is very large take the average of start, middle and end.
         center = int(data.shape[0] // 2)
@@ -432,8 +429,8 @@ def dataframe_to_properties(
 
 
 def validate_properties(
-    properties: Optional[Union[dict[str, Array], pd.DataFrame]],
-    expected_len: Optional[int] = None,
+    properties: dict[str, Array] | pd.DataFrame | None,
+    expected_len: int | None = None,
 ) -> dict[str, np.ndarray]:
     """Validate the type and size of properties and coerce values to numpy arrays.
     Parameters
@@ -474,7 +471,7 @@ def _validate_property_choices(property_choices):
 
 
 def _coerce_current_properties_value(
-    value: Union[float, str, bool, list, tuple, np.ndarray],
+    value: float | str | bool | list | tuple | np.ndarray,
 ) -> np.ndarray:
     """Coerce a value in a current_properties dictionary into the correct type.
 
@@ -505,7 +502,7 @@ def _coerce_current_properties_value(
 
 def coerce_current_properties(
     current_properties: Mapping[
-        str, Union[float, str, int, bool, list, tuple, npt.NDArray]
+        str, float | str | int | bool | list | tuple | npt.NDArray
     ],
 ) -> dict[str, np.ndarray]:
     """Coerce a current_properties dictionary into the correct type.
@@ -604,10 +601,10 @@ def compute_multiscale_level_and_corners(
 
 
 def coerce_affine(
-    affine: Union[npt.ArrayLike, Affine],
+    affine: npt.ArrayLike | Affine,
     *,
     ndim: int,
-    name: Optional[str] = None,
+    name: str | None = None,
 ) -> Affine:
     """Coerce a user input into an affine transform object.
 
@@ -696,7 +693,7 @@ def dims_displayed_world_to_layer(
 def get_extent_world(
     data_extent: npt.NDArray,
     data_to_world: Affine,
-    centered: Optional[Any] = None,
+    centered: Any | None = None,
 ) -> npt.NDArray:
     """Range of layer in world coordinates base on provided data_extent
 
@@ -774,10 +771,10 @@ class _FeatureTable:
 
     def __init__(
         self,
-        values: Optional[Union[dict[str, np.ndarray], pd.DataFrame]] = None,
+        values: dict[str, np.ndarray] | pd.DataFrame | None = None,
         *,
-        num_data: Optional[int] = None,
-        defaults: Optional[Union[dict[str, Any], pd.DataFrame]] = None,
+        num_data: int | None = None,
+        defaults: dict[str, Any] | pd.DataFrame | None = None,
     ) -> None:
         self._values = _validate_features(values, num_data=num_data)
         self._defaults = _validate_feature_defaults(defaults, self._values)
@@ -797,9 +794,7 @@ class _FeatureTable:
         """The default values one-row table."""
         return self._defaults
 
-    def set_defaults(
-        self, defaults: Union[dict[str, Any], pd.DataFrame]
-    ) -> None:
+    def set_defaults(self, defaults: dict[str, Any] | pd.DataFrame) -> None:
         """Sets the feature default values."""
         self._defaults = _validate_feature_defaults(defaults, self._values)
 
@@ -840,7 +835,7 @@ class _FeatureTable:
         self,
         currents: dict[str, npt.NDArray],
         *,
-        update_indices: Optional[list[int]] = None,
+        update_indices: list[int] | None = None,
     ) -> None:
         """Sets the default values using the deprecated current properties dictionary.
 
@@ -909,13 +904,11 @@ class _FeatureTable:
     def from_layer(
         cls,
         *,
-        features: Optional[Union[dict[str, np.ndarray], pd.DataFrame]] = None,
-        feature_defaults: Optional[Union[dict[str, Any], pd.DataFrame]] = None,
-        properties: Optional[
-            Union[dict[str, np.ndarray], pd.DataFrame]
-        ] = None,
-        property_choices: Optional[dict[str, np.ndarray]] = None,
-        num_data: Optional[int] = None,
+        features: dict[str, np.ndarray] | pd.DataFrame | None = None,
+        feature_defaults: dict[str, Any] | pd.DataFrame | None = None,
+        properties: dict[str, np.ndarray] | pd.DataFrame | None = None,
+        property_choices: dict[str, np.ndarray] | None = None,
+        num_data: int | None = None,
     ) -> _FeatureTable:
         """Coerces a layer's keyword arguments to a feature manager.
 
@@ -971,9 +964,9 @@ def _get_default_column(column: pd.Series) -> pd.Series:
 
 
 def _validate_features(
-    features: Optional[Union[dict[str, np.ndarray], pd.DataFrame]],
+    features: dict[str, np.ndarray] | pd.DataFrame | None,
     *,
-    num_data: Optional[int] = None,
+    num_data: int | None = None,
 ) -> pd.DataFrame:
     """Validates and coerces feature values into a pandas DataFrame.
 
@@ -995,7 +988,7 @@ def _validate_features(
 
 
 def _validate_feature_defaults(
-    defaults: Optional[Union[dict[str, Any], pd.DataFrame]],
+    defaults: dict[str, Any] | pd.DataFrame | None,
     values: pd.DataFrame,
 ) -> pd.DataFrame:
     """Validates and coerces feature default values into a pandas DataFrame.
@@ -1043,9 +1036,9 @@ def _validate_feature_defaults(
 
 def _features_from_properties(
     *,
-    properties: Optional[Union[dict[str, np.ndarray], pd.DataFrame]] = None,
-    property_choices: Optional[dict[str, np.ndarray]] = None,
-    num_data: Optional[int] = None,
+    properties: dict[str, np.ndarray] | pd.DataFrame | None = None,
+    property_choices: dict[str, np.ndarray] | None = None,
+    num_data: int | None = None,
 ) -> pd.DataFrame:
     """Validates and coerces deprecated properties input into a features DataFrame.
 
@@ -1076,7 +1069,7 @@ def _features_to_properties(features: pd.DataFrame) -> dict[str, np.ndarray]:
     return {name: series.to_numpy() for name, series in features.items()}
 
 
-def _unique_element(array: Array) -> Optional[Any]:
+def _unique_element(array: Array) -> Any | None:
     """
     Returns the unique element along the 0th axis, if it exists; otherwise, returns None.
 

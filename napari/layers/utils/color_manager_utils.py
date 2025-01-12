@@ -1,4 +1,4 @@
-from typing import Any, Union
+from typing import Any
 
 import numpy as np
 
@@ -48,7 +48,7 @@ def is_color_mapped(color, properties):
 def map_property(
     prop: np.ndarray,
     colormap: Colormap,
-    contrast_limits: Union[None, tuple[float, float]] = None,
+    contrast_limits: None | tuple[float, float] = None,
 ) -> tuple[np.ndarray, tuple[float, float]]:
     """Apply a colormap to a property
 

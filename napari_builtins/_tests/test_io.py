@@ -116,7 +116,7 @@ def test_zarr_multiscale(tmp_path):
         z[:] = multiscale[i]
     multiscale_in = magic_imread([fout])
     assert len(multiscale) == len(multiscale_in)
-    for images, images_in in zip(multiscale, multiscale_in):
+    for images, images_in in zip(multiscale, multiscale_in, strict=False):
         np.testing.assert_array_equal(images, images_in)
 
 
@@ -300,7 +300,10 @@ def test_irregular_images(write_spec, stack):
     images = magic_imread(fnames, use_dask=False, stack=stack)
     assert isinstance(images, list)
     assert len(images) == 2
-    assert all(img.shape == spec.shape for img, spec in zip(images, specs))
+    assert all(
+        img.shape == spec.shape
+        for img, spec in zip(images, specs, strict=False)
+    )
 
 
 def test_add_zarr(write_spec):

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import warnings
 from abc import ABC, abstractmethod
-from typing import Optional
 
 import numpy as np
 from vispy.scene import Node
@@ -23,9 +22,7 @@ class ScalarFieldLayerNode(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_node(
-        self, ndisplay: int, dtype: Optional[np.dtype] = None
-    ) -> Node:
+    def get_node(self, ndisplay: int, dtype: np.dtype | None = None) -> Node:
         """Return the appropriate node for the given ndisplay and dtype."""
         raise NotImplementedError
 
@@ -223,7 +220,7 @@ class VispyScalarFieldBaseLayer(VispyBaseLayer[ScalarFieldBase]):
         return data
 
 
-_VISPY_FORMAT_TO_DTYPE: dict[Optional[str], np.dtype] = {
+_VISPY_FORMAT_TO_DTYPE: dict[str | None, np.dtype] = {
     'r8': np.dtype(np.uint8),
     'r16': np.dtype(np.uint16),
     'r32f': np.dtype(np.float32),

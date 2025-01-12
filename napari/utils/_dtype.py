@@ -1,5 +1,3 @@
-from typing import Union
-
 import numpy as np
 
 _np_uints = {
@@ -103,7 +101,7 @@ def get_dtype_limits(dtype_spec) -> tuple[float, float]:
         The smallest/largest numbers expressible by the type.
     """
     dtype = normalize_dtype(dtype_spec)
-    info: Union[np.iinfo, np.finfo]
+    info: np.iinfo | np.finfo
     if np.issubdtype(dtype, np.integer):
         info = np.iinfo(dtype)
     elif dtype and np.issubdtype(dtype, np.floating):

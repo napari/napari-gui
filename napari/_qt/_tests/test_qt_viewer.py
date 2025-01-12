@@ -1120,6 +1120,7 @@ def test_more_than_uint16_colors(qt_viewer):
         for i, (x, y, z) in zip(
             range(256**2 + 20),
             product(np.linspace(0, 1, 256, endpoint=True), repeat=3),
+            strict=False,
         )
     }
     colors[None] = (0, 0, 0, 1)

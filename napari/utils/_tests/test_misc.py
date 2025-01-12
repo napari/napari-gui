@@ -47,6 +47,7 @@ def test_sequence_of_iterables(input_data, expected):
         range(3),
         ensure_sequence_of_iterables(input_data, repeat_empty=True),
         expected,
+        strict=False,
     )
     for _i, result, expectation in zipped:
         assert result == expectation
@@ -89,7 +90,7 @@ def test_sequence_of_iterables_raises():
 )
 def test_ensure_iterable(input_data, expected):
     """Test test_ensure_iterable returns an iterable."""
-    zipped = zip(range(3), ensure_iterable(input_data), expected)
+    zipped = zip(range(3), ensure_iterable(input_data), expected, strict=False)
     for _i, result, expectation in zipped:
         assert result == expectation
 

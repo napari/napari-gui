@@ -1,4 +1,4 @@
-from typing import Callable
+from collections.abc import Callable
 
 from napari.layers.base._base_constants import Mode
 from napari.layers.tracks.tracks import Tracks

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Generator
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -17,7 +17,7 @@ if TYPE_CHECKING:
 
 def move_plane_along_normal(
     layer: Image, event: Event
-) -> Union[None, Generator[None, None, None]]:
+) -> None | Generator[None, None, None]:
     """Move a layers slicing plane along its normal vector on click and drag."""
     # early exit clauses
     if (

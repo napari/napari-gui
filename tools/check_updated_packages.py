@@ -7,7 +7,6 @@ import re
 import subprocess  # nosec
 import sys
 from pathlib import Path
-from typing import Optional
 
 from tomllib import loads
 
@@ -159,7 +158,7 @@ def get_changed_dependencies(
     base_branch: str,
     all_packages=False,
     python_version='3.10',
-    src_dir: Optional[Path] = None,
+    src_dir: Path | None = None,
 ):
     """
     Get the changed dependencies.

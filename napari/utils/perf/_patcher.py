@@ -6,8 +6,9 @@ for any type of patching. See patch_callables() below as the main entrypoint.
 
 import logging
 import types
+from collections.abc import Callable
 from importlib import import_module
-from typing import Callable, Union
+from typing import Union
 
 from napari.utils.translations import trans
 
@@ -94,7 +95,7 @@ def _patch_attribute(
 
 def _import_module(
     target_str: str,
-) -> Union[tuple[types.ModuleType, str], tuple[None, None]]:
+) -> tuple[types.ModuleType, str] | tuple[None, None]:
     """Import the module portion of this target string.
 
     Try importing successively longer segments of the target_str. For example:

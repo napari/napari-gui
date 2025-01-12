@@ -41,7 +41,7 @@ class QtNodeTreeModel(_BaseEventedItemModel[NodeType]):
         return None
 
     def index(
-        self, row: int, column: int = 0, parent: Optional[QModelIndex] = None
+        self, row: int, column: int = 0, parent: QModelIndex | None = None
     ) -> QModelIndex:
         """Return a QModelIndex for item at `row`, `column` and `parent`."""
 
@@ -211,7 +211,7 @@ class QtNodeTreeModel(_BaseEventedItemModel[NodeType]):
 class NodeMimeData(QMimeData):
     """An object to store Node data during a drag operation."""
 
-    def __init__(self, nodes: Optional[list[NodeType]] = None) -> None:
+    def __init__(self, nodes: list[NodeType] | None = None) -> None:
         super().__init__()
         self.nodes: list[NodeType] = nodes or []
         if nodes:

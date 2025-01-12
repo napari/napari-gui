@@ -1,14 +1,11 @@
 import typing
 import warnings
 from collections import deque
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from contextlib import contextmanager
 from typing import (
     Any,
-    Callable,
     ClassVar,
-    Optional,
-    Union,
 )
 
 import numpy as np
@@ -463,7 +460,7 @@ class Labels(ScalarFieldBase):
         return str(self._iso_gradient_mode)
 
     @iso_gradient_mode.setter
-    def iso_gradient_mode(self, value: Union[IsoCategoricalGradientMode, str]):
+    def iso_gradient_mode(self, value: IsoCategoricalGradientMode | str):
         self._iso_gradient_mode = IsoCategoricalGradientMode(value)
         self.events.iso_gradient_mode()
 
@@ -519,7 +516,7 @@ class Labels(ScalarFieldBase):
         )
         return abs(self.brush_size * min_scale)
 
-    def new_colormap(self, seed: Optional[int] = None):
+    def new_colormap(self, seed: int | None = None):
         if seed is None:
             seed = np.random.default_rng().integers(2**32 - 1)
 
@@ -568,12 +565,12 @@ class Labels(ScalarFieldBase):
         self.refresh(extent=False)
 
     @property
-    def data(self) -> Union[LayerDataProtocol, MultiScaleData]:
+    def data(self) -> LayerDataProtocol | MultiScaleData:
         """array: Image data."""
         return self._data
 
     @data.setter
-    def data(self, data: Union[LayerDataProtocol, MultiScaleData]):
+    def data(self, data: LayerDataProtocol | MultiScaleData):
         data = self._ensure_int_labels(data)
         self._data = data
         self._ndim = len(self._data.shape)
@@ -602,7 +599,7 @@ class Labels(ScalarFieldBase):
     @features.setter
     def features(
         self,
-        features: Union[dict[str, np.ndarray], pd.DataFrame],
+        features: dict[str, np.ndarray] | pd.DataFrame,
     ) -> None:
         self._feature_table.set_values(features)
         self._label_index = self._make_label_index()
@@ -860,7 +857,7 @@ class Labels(ScalarFieldBase):
 
     def _calculate_contour(
         self, labels: np.ndarray, data_slice: tuple[slice, ...]
-    ) -> Optional[np.ndarray]:
+    ) -> np.ndarray | None:
         """Calculate the contour of a given label array within the specified data slice.
 
         Parameters
@@ -898,12 +895,12 @@ class Labels(ScalarFieldBase):
         # Remove the latest one-pixel border from the result
         delta_slice = tuple(
             slice(s1.start - s2.start, s1.stop - s2.start)
-            for s1, s2 in zip(data_slice, expanded_slice)
+            for s1, s2 in zip(data_slice, expanded_slice, strict=False)
         )
         return sliced_labels[delta_slice]
 
     def _raw_to_displayed(
-        self, raw, data_slice: Optional[tuple[slice, ...]] = None
+        self, raw, data_slice: tuple[slice, ...] | None = None
     ) -> np.ndarray:
         """Determine displayed image from a saved raw image and a saved seed.
 
@@ -1441,7 +1438,9 @@ class Labels(ScalarFieldBase):
             self._updated_slice = tuple(
                 [
                     slice(min(s1.start, s2.start), max(s1.stop, s2.stop))
-                    for s1, s2 in zip(updated_slice, self._updated_slice)
+                    for s1, s2 in zip(
+                        updated_slice, self._updated_slice, strict=False
+                    )
                 ]
             )
 
@@ -1456,10 +1455,10 @@ class Labels(ScalarFieldBase):
 
     def get_status(
         self,
-        position: Optional[npt.ArrayLike] = None,
+        position: npt.ArrayLike | None = None,
         *,
-        view_direction: Optional[npt.ArrayLike] = None,
-        dims_displayed: Optional[list[int]] = None,
+        view_direction: npt.ArrayLike | None = None,
+        dims_displayed: list[int] | None = None,
         world: bool = False,
     ) -> dict:
         """Status message information of the data at a coordinate position.
@@ -1516,8 +1515,8 @@ class Labels(ScalarFieldBase):
         self,
         position,
         *,
-        view_direction: Optional[np.ndarray] = None,
-        dims_displayed: Optional[list[int]] = None,
+        view_direction: np.ndarray | None = None,
+        dims_displayed: list[int] | None = None,
         world: bool = False,
     ):
         """
@@ -1555,8 +1554,8 @@ class Labels(ScalarFieldBase):
         self,
         position,
         *,
-        view_direction: Optional[np.ndarray] = None,
-        dims_displayed: Optional[list[int]] = None,
+        view_direction: np.ndarray | None = None,
+        dims_displayed: list[int] | None = None,
         world: bool = False,
     ) -> list:
         if len(self._label_index) == 0 or self.features.shape[1] == 0:

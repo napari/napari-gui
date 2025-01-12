@@ -174,7 +174,7 @@ class FormatStringEncoding(_DerivedStyleEncoding[StringValue, StringArray]):
             feature_names = ['index'] + feature_names
             with_index = True
         values = [
-            self.format.format(**dict(zip(feature_names, row)))
+            self.format.format(**dict(zip(feature_names, row, strict=False)))
             for row in features.itertuples(index=with_index, name=None)
         ]
         return np.array(values, dtype=str)

@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from vispy.scene.visuals import create_visual_node
 from vispy.visuals.image import ImageVisual
@@ -31,7 +31,7 @@ BaseLabel = create_visual_node(LabelVisual)
 class LabelNode(BaseLabel):  # type: ignore [valid-type,misc]
     def _compute_bounds(
         self, axis: int, view: 'VisualView'
-    ) -> Optional[tuple[float, float]]:
+    ) -> tuple[float, float] | None:
         if self._data is None:
             return None
         elif axis > 1:  # noqa: RET505

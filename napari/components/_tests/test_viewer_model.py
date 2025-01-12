@@ -227,7 +227,10 @@ def test_add_surface():
     viewer.add_surface(data)
     assert len(viewer.layers) == 1
     assert np.all(
-        [np.array_equal(vd, d) for vd, d in zip(viewer.layers[0].data, data)]
+        [
+            np.array_equal(vd, d)
+            for vd, d in zip(viewer.layers[0].data, data, strict=False)
+        ]
     )
     assert viewer.dims.ndim == 3
 
@@ -752,7 +755,7 @@ def test_update_scale():
     scale = (3.0, 2.0, 1.0)
     viewer.layers[0].scale = scale
     assert viewer.dims.range == tuple(
-        (0.0, (x - 1) * s, s) for x, s in zip(shape, scale)
+        (0.0, (x - 1) * s, s) for x, s in zip(shape, scale, strict=False)
     )
 
 

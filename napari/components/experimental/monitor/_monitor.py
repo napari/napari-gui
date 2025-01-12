@@ -11,7 +11,6 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Optional
 
 from napari.utils.translations import trans
 
@@ -49,7 +48,7 @@ def _load_config(path: str) -> dict:
         return json.load(infile)
 
 
-def _load_monitor_config() -> Optional[dict]:
+def _load_monitor_config() -> dict | None:
     """Return the MonitorService config file data, or None.
 
     Returns
@@ -88,7 +87,7 @@ def _setup_logging(config: dict) -> None:
     LOGGER.info('Writing to log path %s', log_path)
 
 
-def _get_monitor_config() -> Optional[dict]:
+def _get_monitor_config() -> dict | None:
     """Create and return the configuration for the MonitorService.
 
     The routine might return None for one serveral reasons:

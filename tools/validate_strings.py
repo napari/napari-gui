@@ -141,7 +141,7 @@ show_trans_strings = FindTransStrings()
 
 
 def _find_func_definitions(
-    node: ast.AST, defs: Optional[list[ast.FunctionDef]] = None
+    node: ast.AST, defs: list[ast.FunctionDef] | None = None
 ) -> list[ast.FunctionDef]:
     """Find all functions definition recrusively.
 
@@ -404,7 +404,7 @@ def find_trans_strings(
     return trans_strings, errors
 
 
-def import_module_by_path(fpath: str) -> Optional[ModuleType]:
+def import_module_by_path(fpath: str) -> ModuleType | None:
     """Import a module given py a path.
 
     Parameters

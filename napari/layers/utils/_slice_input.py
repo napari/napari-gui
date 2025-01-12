@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import warnings
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Generic, TypeVar, Union
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 import numpy as np
 
@@ -123,7 +123,9 @@ class _ThickNDSlice(Generic[_T]):
 
     def __iter__(self):
         # iterate all three fields dimension per dimension
-        yield from zip(self.point, self.margin_left, self.margin_right)
+        yield from zip(
+            self.point, self.margin_left, self.margin_right, strict=False
+        )
 
 
 @dataclass(frozen=True)
@@ -179,7 +181,7 @@ class _SliceInput:
     def data_slice(
         self,
         world_to_data: Affine,
-    ) -> _ThickNDSlice[Union[float, int]]:
+    ) -> _ThickNDSlice[float | int]:
         """Transforms this thick_slice into data coordinates with only relevant dimensions.
 
         The elements in non-displayed dimensions will be real numbers.
