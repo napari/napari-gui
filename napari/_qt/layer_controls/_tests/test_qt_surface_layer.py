@@ -14,12 +14,18 @@ def test_shading_combobox(qtbot):
     layer = Surface(_SURFACE)
     qtctrl = QtSurfaceControls(layer)
     qtbot.addWidget(qtctrl)
-    assert qtctrl.shadingComboBox.currentText() == layer.shading
+    assert (
+        qtctrl.qtShadingComboBoxControl.shadingComboBox.currentText()
+        == layer.shading
+    )
 
     for display, shading in SHADING_TRANSLATION.items():
-        qtctrl.shadingComboBox.setCurrentText(display)
+        qtctrl.qtShadingComboBoxControl.shadingComboBox.setCurrentText(display)
         assert layer.shading == shading
 
     for display, shading in SHADING_TRANSLATION.items():
         layer.shading = shading
-        assert qtctrl.shadingComboBox.currentText() == display
+        assert (
+            qtctrl.qtShadingComboBoxControl.shadingComboBox.currentText()
+            == display
+        )

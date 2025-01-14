@@ -10,7 +10,7 @@ def test_out_of_slice_display_checkbox(qtbot):
     layer = Vectors(_VECTORS)
     qtctrl = QtVectorsControls(layer)
     qtbot.addWidget(qtctrl)
-    qtctrl.outOfSliceCheckBox.setChecked(True)
+    qtctrl.qtOutSliceCheckBoxControl.outOfSliceCheckBox.setChecked(True)
     assert layer.out_of_slice_display
-    qtctrl.outOfSliceCheckBox.setChecked(False)
+    qtctrl.qtOutSliceCheckBoxControl.outOfSliceCheckBox.setChecked(False)
     assert not layer.out_of_slice_display

@@ -1,17 +1,17 @@
 from typing import TYPE_CHECKING
 
-from qtpy.QtCore import Qt
-from qtpy.QtWidgets import (
-    QCheckBox,
-    QComboBox,
-    QSlider,
-)
-
 from napari._qt.layer_controls.qt_layer_controls_base import QtLayerControls
-from napari._qt.utils import qt_signals_blocked
+from napari._qt.layer_controls.widgets._tracks import (
+    QtColormapComboBoxControl,
+    QtColorPropertiesComboBoxControl,
+    QtGraphCheckBoxControl,
+    QtHeadLengthSliderControl,
+    QtIdCheckBoxControl,
+    QtTailDisplayCheckBoxControl,
+    QtTailLengthSliderControl,
+    QtTailWidthSliderControl,
+)
 from napari.layers.base._base_constants import Mode
-from napari.utils.colormaps import AVAILABLE_COLORMAPS
-from napari.utils.translations import trans
 
 if TYPE_CHECKING:
     import napari.layers
@@ -27,15 +27,56 @@ class QtTracksControls(QtLayerControls):
 
     Attributes
     ----------
-    layer : layers.Tracks
-        An instance of a Tracks layer.
+    MODE : Enum
+        Available modes in the associated layer.
+    PAN_ZOOM_ACTION_NAME : str
+        String id for the pan-zoom action to bind to the pan_zoom button.
+    TRANSFORM_ACTION_NAME : str
+        String id for the transform action to bind to the transform button.
     button_group : qtpy.QtWidgets.QButtonGroup
         Button group of points layer modes (ADD, PAN_ZOOM, SELECT).
+    layer : layers.Tracks
+        An instance of a Tracks layer.
     panzoom_button : napari._qt.widgets.qt_mode_button.QtModeRadioButton
         Button for pan/zoom mode.
+    qtColormapComboBoxControl.colormap_combobox : qtpy.QtWidgets.QComboBox
+        ComboBox controlling current colormap of the layer.
+    qtColormapComboBoxControl.colormap_combobox_label : napari._qt.layer_controls.widgets.qt_widget_controls_base.QtWrappedLabel
+        Label for the colormap chooser widget.
+    qtGraphCheckBoxControl.graph_checkbox : qtpy.QtWidgets.QCheckBox
+        Checkbox controlling if graph of the layer should be shown.
+    qtGraphCheckBoxControl.graph_checkbox_label : napari._qt.layer_controls.widgets.qt_widget_controls_base.QtWrappedLabel
+        Label for showing the graph chooser widget.
+    qtHeadLengthSliderControl.head_length_slider : qtpy.QtWidgets.QSlider
+        Slider controlling head length of the layer.
+    qtHeadLengthSliderControl.head_length_slider_label : napari._qt.layer_controls.widgets.qt_widget_controls_base.QtWrappedLabel
+        Label for the head length chooser widget.
+    qtIdCheckBoxControl.id_checkbox : qtpy.QtWidgets.QCheckBox
+        Checkbox controlling if id of the layer should be shown.
+    qtIdCheckBoxControl.id_checkbox_label : napari._qt.layer_controls.widgets.qt_widget_controls_base.QtWrappedLabel
+        Label for showing the id chooser widget.
+    qtOpacityBlendingControls.blendComboBox : qtpy.QtWidgets.QComboBox
+        Dropdown widget to select blending mode of layer.
+    qtOpacityBlendingControls.blendLabel : napari._qt.layer_controls.widgets.qt_widget_controls_base.QtWrappedLabel
+        Label for the blending combobox widget.
+    qtOpacityBlendingControls.opacityLabel : napari._qt.layer_controls.widgets.qt_widget_controls_base.QtWrappedLabel
+        Label for the opacity slider widget.
+    qtOpacityBlendingControls.opacitySlider : qtpy.QtWidgets.QSlider
+        Slider controlling opacity of the layer.
+    qtTailDisplayCheckBoxControl.tail_checkbox : qtpy.QtWidgets.QCheckBox
+        Checkbox controlling if tails of the layer should be shown.
+    qtTailDisplayCheckBoxControl.tail_tail_checkbox_label : napari._qt.layer_controls.widgets.qt_widget_controls_base.QtWrappedLabel
+        Label for showing the tails chooser widget.
+    qtTailLengthSliderControl.tail_length_slider : qtpy.QtWidgets.QSlider
+        Slider controlling tail length of the layer.
+    qtTailLengthSliderControl.tail_length_slider_label : napari._qt.layer_controls.widgets.qt_widget_controls_base.QtWrappedLabel
+        Label for the tail length chooser widget.
+    qtTailWidthSliderControl.tail_width_slider : qtpy.QtWidgets.QSlider
+        Slider controlling tail width of the layer.
+    qtTailWidthSliderControl.tail_width_slider_label : napari._qt.layer_controls.widgets.qt_widget_controls_base.QtWrappedLabel
+        Label for the tail width chooser widget.
     transform_button : napari._qt.widgets.qt_mode_button.QtModeRadioButton
         Button to select transform mode.
-
     """
 
     layer: 'napari.layers.Tracks'
@@ -45,162 +86,14 @@ class QtTracksControls(QtLayerControls):
 
     def __init__(self, layer) -> None:
         super().__init__(layer)
-
-        # NOTE(arl): there are no events fired for changing checkboxes
-        self.layer.events.color_by.connect(self._on_color_by_change)
-        self.layer.events.tail_width.connect(self._on_tail_width_change)
-        self.layer.events.tail_length.connect(self._on_tail_length_change)
-        self.layer.events.head_length.connect(self._on_head_length_change)
-        self.layer.events.properties.connect(self._on_properties_change)
-        self.layer.events.colormap.connect(self._on_colormap_change)
-
-        # combo box for track coloring, we can get these from the properties
-        # keys
-        self.color_by_combobox = QComboBox()
-        self.color_by_combobox.addItems(self.layer.properties_to_color_by)
-
-        self.colormap_combobox = QComboBox()
-        for name, colormap in AVAILABLE_COLORMAPS.items():
-            display_name = colormap._display_name
-            self.colormap_combobox.addItem(display_name, name)
-
-        # slider for track head length
-        self.head_length_slider = QSlider(Qt.Orientation.Horizontal)
-        self.head_length_slider.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.head_length_slider.setMinimum(0)
-        self.head_length_slider.setMaximum(self.layer._max_length)
-        self.head_length_slider.setSingleStep(1)
-
-        # slider for track tail length
-        self.tail_length_slider = QSlider(Qt.Orientation.Horizontal)
-        self.tail_length_slider.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.tail_length_slider.setMinimum(1)
-        self.tail_length_slider.setMaximum(self.layer._max_length)
-        self.tail_length_slider.setSingleStep(1)
-
-        # slider for track edge width
-        self.tail_width_slider = QSlider(Qt.Orientation.Horizontal)
-        self.tail_width_slider.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.tail_width_slider.setMinimum(1)
-        self.tail_width_slider.setMaximum(int(2 * self.layer._max_width))
-        self.tail_width_slider.setSingleStep(1)
-
-        # checkboxes for display
-        self.id_checkbox = QCheckBox()
-        self.tail_checkbox = QCheckBox()
-        self.tail_checkbox.setChecked(True)
-        self.graph_checkbox = QCheckBox()
-        self.graph_checkbox.setChecked(True)
-
-        self.tail_width_slider.valueChanged.connect(self.change_tail_width)
-        self.tail_length_slider.valueChanged.connect(self.change_tail_length)
-        self.head_length_slider.valueChanged.connect(self.change_head_length)
-        self.tail_checkbox.stateChanged.connect(self.change_display_tail)
-        self.id_checkbox.stateChanged.connect(self.change_display_id)
-        self.graph_checkbox.stateChanged.connect(self.change_display_graph)
-        self.color_by_combobox.currentTextChanged.connect(self.change_color_by)
-        self.colormap_combobox.currentTextChanged.connect(self.change_colormap)
-
-        self.layout().addRow(self.button_grid)
-        self.layout().addRow(self.opacityLabel, self.opacitySlider)
-        self.layout().addRow(trans._('blending:'), self.blendComboBox)
-        self.layout().addRow(trans._('color by:'), self.color_by_combobox)
-        self.layout().addRow(trans._('colormap:'), self.colormap_combobox)
-        self.layout().addRow(trans._('tail width:'), self.tail_width_slider)
-        self.layout().addRow(trans._('tail length:'), self.tail_length_slider)
-        self.layout().addRow(trans._('head length:'), self.head_length_slider)
-        self.layout().addRow(trans._('tail:'), self.tail_checkbox)
-        self.layout().addRow(trans._('show ID:'), self.id_checkbox)
-        self.layout().addRow(trans._('graph:'), self.graph_checkbox)
-
-        self._on_tail_length_change()
-        self._on_tail_width_change()
-        self._on_colormap_change()
-        self._on_color_by_change()
-
-    def _on_tail_width_change(self):
-        """Receive layer model track line width change event and update slider."""
-        with self.layer.events.tail_width.blocker():
-            value = int(2 * self.layer.tail_width)
-            self.tail_width_slider.setValue(value)
-
-    def _on_tail_length_change(self):
-        """Receive layer model track line width change event and update slider."""
-        with self.layer.events.tail_length.blocker():
-            value = self.layer.tail_length
-            self.tail_length_slider.setValue(value)
-
-    def _on_head_length_change(self):
-        """Receive layer model track line width change event and update slider."""
-        with self.layer.events.head_length.blocker():
-            value = self.layer.head_length
-            self.head_length_slider.setValue(value)
-
-    def _on_properties_change(self):
-        """Change the properties that can be used to color the tracks."""
-        with qt_signals_blocked(self.color_by_combobox):
-            self.color_by_combobox.clear()
-            self.color_by_combobox.addItems(self.layer.properties_to_color_by)
-        self._on_color_by_change()
-
-    def _on_colormap_change(self):
-        """Receive layer model colormap change event and update combobox."""
-        with self.layer.events.colormap.blocker():
-            self.colormap_combobox.setCurrentIndex(
-                self.colormap_combobox.findData(self.layer.colormap)
-            )
-
-    def _on_color_by_change(self):
-        """Receive layer model color_by change event and update combobox."""
-        with self.layer.events.color_by.blocker():
-            color_by = self.layer.color_by
-
-            idx = self.color_by_combobox.findText(
-                color_by, Qt.MatchFlag.MatchFixedString
-            )
-            self.color_by_combobox.setCurrentIndex(idx)
-
-    def change_tail_width(self, value):
-        """Change track line width of shapes on the layer model.
-
-        Parameters
-        ----------
-        value : float
-            Line width of track tails.
-        """
-        self.layer.tail_width = float(value) / 2.0
-
-    def change_tail_length(self, value):
-        """Change edge line backward length of shapes on the layer model.
-
-        Parameters
-        ----------
-        value : int
-            Line length of track tails.
-        """
-        self.layer.tail_length = value
-
-    def change_head_length(self, value):
-        """Change edge line forward length of shapes on the layer model.
-
-        Parameters
-        ----------
-        value : int
-            Line length of track tails.
-        """
-        self.layer.head_length = value
-
-    def change_display_tail(self, state):
-        self.layer.display_tail = self.tail_checkbox.isChecked()
-
-    def change_display_id(self, state):
-        self.layer.display_id = self.id_checkbox.isChecked()
-
-    def change_display_graph(self, state):
-        self.layer.display_graph = self.graph_checkbox.isChecked()
-
-    def change_color_by(self, value: str):
-        self.layer.color_by = value
-
-    def change_colormap(self, colormap: str):
-        self.layer.colormap = self.colormap_combobox.currentData()
+        # Setup widgets controls
+        self._add_widget_controls(
+            QtColorPropertiesComboBoxControl(self, layer)
+        )
+        self._add_widget_controls(QtColormapComboBoxControl(self, layer))
+        self._add_widget_controls(QtTailWidthSliderControl(self, layer))
+        self._add_widget_controls(QtTailLengthSliderControl(self, layer))
+        self._add_widget_controls(QtHeadLengthSliderControl(self, layer))
+        self._add_widget_controls(QtTailDisplayCheckBoxControl(self, layer))
+        self._add_widget_controls(QtIdCheckBoxControl(self, layer))
+        self._add_widget_controls(QtGraphCheckBoxControl(self, layer))

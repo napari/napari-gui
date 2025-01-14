@@ -2,19 +2,19 @@ from qtpy.QtCore import Qt
 from qtpy.QtGui import QMouseEvent
 from qtpy.QtWidgets import (
     QButtonGroup,
-    QComboBox,
     QFormLayout,
     QFrame,
     QGridLayout,
-    QLabel,
     QMessageBox,
 )
 
+from napari._qt.layer_controls.widgets import (
+    QtOpacityBlendingControls,
+    QtWidgetControlsBase,
+)
 from napari._qt.utils import set_widgets_enabled_with_opacity
-from napari._qt.widgets._slider_compat import QDoubleSlider
 from napari._qt.widgets.qt_mode_buttons import QtModeRadioButton
 from napari.layers.base._base_constants import (
-    BLENDING_TRANSLATIONS,
     Blending,
     Mode,
 )
@@ -49,30 +49,30 @@ class QtLayerControls(QFrame):
 
     Attributes
     ----------
-    layer : napari.layers.Layer
-        An instance of a napari layer.
     MODE : Enum
         Available modes in the associated layer.
     PAN_ZOOM_ACTION_NAME : str
         String id for the pan-zoom action to bind to the pan_zoom button.
     TRANSFORM_ACTION_NAME : str
         String id for the transform action to bind to the transform button.
-    button_group : qtpy.QtWidgets.QButtonGroup
-        Button group for image based layer modes (PAN_ZOOM TRANSFORM).
+    qtOpacityBlendingControls.blendComboBox : qtpy.QtWidgets.QComboBox
+        Dropdown widget to select blending mode of layer.
+    qtOpacityBlendingControls.blendLabel : napari._qt.layer_controls.widgets.qt_widget_controls_base.QtWrappedLabel
+        Label for the blending combobox widget.
     button_grid : qtpy.QtWidgets.QGridLayout
         GridLayout for the layer mode buttons
+    button_group : qtpy.QtWidgets.QButtonGroup
+        Button group for image based layer modes (PAN_ZOOM TRANSFORM).
+    layer : napari.layers.Layer
+        An instance of a napari layer.
+    qtOpacityBlendingControls.opacityLabel : napari._qt.layer_controls.widgets.qt_widget_controls_base.QtWrappedLabel
+        Label for the opacity slider widget.
+    qtOpacityBlendingControls.opacitySlider : qtpy.QtWidgets.QSlider
+        Slider controlling opacity of the layer.
     panzoom_button : napari._qt.widgets.qt_mode_button.QtModeRadioButton
         Button to pan/zoom shapes layer.
     transform_button : napari._qt.widgets.qt_mode_button.QtModeRadioButton
         Button to transform shapes layer.
-    blendComboBox : qtpy.QtWidgets.QComboBox
-        Dropdown widget to select blending mode of layer.
-    layer : napari.layers.Layer
-        An instance of a napari layer.
-    opacitySlider : qtpy.QtWidgets.QSlider
-        Slider controlling opacity of the layer.
-    opacityLabel : qtpy.QtWidgets.QLabel
-        Label for the opacity slider widget.
     """
 
     MODE = Mode
@@ -85,13 +85,12 @@ class QtLayerControls(QFrame):
         self._ndisplay: int = 2
         self._EDIT_BUTTONS: tuple = ()
         self._MODE_BUTTONS: dict = {}
+        self._widget_controls: list = []
 
         self.layer = layer
         self.layer.events.mode.connect(self._on_mode_change)
         self.layer.events.editable.connect(self._on_editable_or_visible_change)
         self.layer.events.visible.connect(self._on_editable_or_visible_change)
-        self.layer.events.blending.connect(self._on_blending_change)
-        self.layer.events.opacity.connect(self._on_opacity_change)
 
         self.setObjectName('layer')
         self.setMouseTracking(True)
@@ -128,78 +127,32 @@ class QtLayerControls(QFrame):
         self.button_grid.setContentsMargins(5, 0, 0, 5)
         self.button_grid.setColumnStretch(0, 1)
         self.button_grid.setSpacing(4)
+        self.layout().addRow(self.button_grid)
 
-        # Control widgets
-        sld = QDoubleSlider(Qt.Orientation.Horizontal, parent=self)
-        sld.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        sld.setMinimum(0)
-        sld.setMaximum(1)
-        sld.setSingleStep(0.01)
-        sld.valueChanged.connect(self.changeOpacity)
-        self.opacitySlider = sld
-        self.opacityLabel = QLabel(trans._('opacity:'))
+        # Setup widgets controls
+        self._add_widget_controls(QtOpacityBlendingControls(self, layer))
 
-        self._on_opacity_change()
-
-        blend_comboBox = QComboBox(self)
-        for index, (data, text) in enumerate(BLENDING_TRANSLATIONS.items()):
-            data = data.value
-            blend_comboBox.addItem(text, data)
-            if data == self.layer.blending:
-                blend_comboBox.setCurrentIndex(index)
-
-        blend_comboBox.currentTextChanged.connect(self.changeBlending)
-        self.blendComboBox = blend_comboBox
-        # opaque and minimum blending do not support changing alpha
-        self.opacitySlider.setEnabled(
-            self.layer.blending not in NO_OPACITY_BLENDING_MODES
-        )
-        self.opacityLabel.setEnabled(
-            self.layer.blending not in NO_OPACITY_BLENDING_MODES
-        )
-        if self.__class__ == QtLayerControls:
-            # This base class is only instantiated in tests. When it's not a
-            # concrete subclass, we need to parent the button_grid to the
-            # layout so that qtbot will correctly clean up all instantiated
-            # widgets.
-            self.layout().addRow(self.button_grid)
-
-    def changeOpacity(self, value):
-        """Change opacity value on the layer model.
+    def _add_widget_controls(
+        self,
+        wrapper: QtWidgetControlsBase,
+    ) -> None:
+        """
+        Add widget controls.
 
         Parameters
         ----------
-        value : float
-            Opacity value for shapes.
-            Input range 0 - 100 (transparent to fully opaque).
+        wrapper : napari._qt.layer_controls.widgets.qt_widget_controls_base.QtWidgetControlsBase
+            An instance of a `QtWidgetControlsBase` subclass that setups
+            widgets for a layer attribute.
         """
-        with self.layer.events.blocker(self._on_opacity_change):
-            self.layer.opacity = value
+        wrapper_name = wrapper.__class__.__name__
+        wrapper_name = wrapper_name[0].lower() + wrapper_name[1:]
+        setattr(self, wrapper_name, wrapper)
+        self._widget_controls.append(wrapper)
+        controls = wrapper.get_widget_controls()
 
-    def changeBlending(self, text):
-        """Change blending mode on the layer model.
-
-        Parameters
-        ----------
-        text : str
-            Name of blending mode, eg: 'translucent', 'additive', 'opaque'.
-        """
-        self.layer.blending = self.blendComboBox.currentData()
-        # opaque and minimum blending do not support changing alpha
-        self.opacitySlider.setEnabled(
-            self.layer.blending not in NO_OPACITY_BLENDING_MODES
-        )
-        self.opacityLabel.setEnabled(
-            self.layer.blending not in NO_OPACITY_BLENDING_MODES
-        )
-
-        blending_tooltip = ''
-        if self.layer.blending == str(Blending.MINIMUM):
-            blending_tooltip = trans._(
-                '`minimum` blending mode works best with inverted colormaps with a white background.',
-            )
-        self.blendComboBox.setToolTip(blending_tooltip)
-        self.layer.help = blending_tooltip
+        for label_text, control_widget in controls:
+            self.layout().addRow(label_text, control_widget)
 
     def _radio_button(
         self,
@@ -290,18 +243,6 @@ class QtLayerControls(QFrame):
         )
         self._set_transform_tool_state()
 
-    def _on_opacity_change(self):
-        """Receive layer model opacity change event and update opacity slider."""
-        with self.layer.events.opacity.blocker():
-            self.opacitySlider.setValue(self.layer.opacity)
-
-    def _on_blending_change(self):
-        """Receive layer model blending mode change event and update slider."""
-        with self.layer.events.blending.blocker():
-            self.blendComboBox.setCurrentIndex(
-                self.blendComboBox.findData(self.layer.blending)
-            )
-
     @property
     def ndisplay(self) -> int:
         """The number of dimensions displayed in the canvas."""
@@ -360,11 +301,15 @@ class QtLayerControls(QFrame):
 
     def deleteLater(self):
         disconnect_events(self.layer.events, self)
+        for widget_control in self._widget_controls:
+            widget_control.disconnect_widget_controls()
         super().deleteLater()
 
     def close(self):
         """Disconnect events when widget is closing."""
         disconnect_events(self.layer.events, self)
+        for widget_control in self._widget_controls:
+            widget_control.disconnect_widget_controls()
         for child in self.children():
             close_method = getattr(child, 'close', None)
             if close_method is not None:

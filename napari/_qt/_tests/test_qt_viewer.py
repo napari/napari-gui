@@ -765,7 +765,9 @@ def _update_data(
 
     qtbot.wait(50)  # wait for .update() to be called on QtColorBox from Qt
 
-    color_box_color = qt_viewer.controls.widgets[layer].colorBox.color
+    color_box_color = qt_viewer.controls.widgets[
+        layer
+    ].qtLabelControl.colorBox.color
     screenshot = qt_viewer.screenshot(flash=False)
     shape = np.array(screenshot.shape[:2])
     middle_pixel = screenshot[tuple(shape // 2)]

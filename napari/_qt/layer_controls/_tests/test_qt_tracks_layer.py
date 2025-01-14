@@ -33,22 +33,35 @@ def test_tracks_controls_color_by(null_data, properties, qtbot):
 
     # verify the color_by argument is initialized correctly
     assert layer.color_by == inital_color_by
-    assert qtctrl.color_by_combobox.currentText() == inital_color_by
+    assert (
+        qtctrl.qtColorPropertiesComboBoxControl.color_by_combobox.currentText()
+        == inital_color_by
+    )
 
     # update color_by from the layer model
     layer_update_color_by = 'speed'
     layer.color_by = layer_update_color_by
     assert layer.color_by == layer_update_color_by
-    assert qtctrl.color_by_combobox.currentText() == layer_update_color_by
+    assert (
+        qtctrl.qtColorPropertiesComboBoxControl.color_by_combobox.currentText()
+        == layer_update_color_by
+    )
 
     # update color_by from the qt controls
     qt_update_color_by = 'track_id'
-    speed_index = qtctrl.color_by_combobox.findText(
-        qt_update_color_by, Qt.MatchFixedString
+    speed_index = (
+        qtctrl.qtColorPropertiesComboBoxControl.color_by_combobox.findText(
+            qt_update_color_by, Qt.MatchFixedString
+        )
     )
-    qtctrl.color_by_combobox.setCurrentIndex(speed_index)
+    qtctrl.qtColorPropertiesComboBoxControl.color_by_combobox.setCurrentIndex(
+        speed_index
+    )
     assert layer.color_by == qt_update_color_by
-    assert qtctrl.color_by_combobox.currentText() == qt_update_color_by
+    assert (
+        qtctrl.qtColorPropertiesComboBoxControl.color_by_combobox.currentText()
+        == qt_update_color_by
+    )
 
 
 @pytest.mark.parametrize('color_by', ['track_id', 'speed'])
@@ -60,7 +73,10 @@ def test_color_by_same_after_properties_change(
     layer.color_by = color_by
     controls = QtTracksControls(layer)
     qtbot.addWidget(controls)
-    assert controls.color_by_combobox.currentText() == color_by
+    assert (
+        controls.qtColorPropertiesComboBoxControl.color_by_combobox.currentText()
+        == color_by
+    )
 
     # Change the properties value by removing the time column.
     layer.properties = {
@@ -69,7 +85,10 @@ def test_color_by_same_after_properties_change(
     }
 
     assert layer.color_by == color_by
-    assert controls.color_by_combobox.currentText() == color_by
+    assert (
+        controls.qtColorPropertiesComboBoxControl.color_by_combobox.currentText()
+        == color_by
+    )
 
 
 def test_color_by_missing_after_properties_change(
@@ -80,7 +99,10 @@ def test_color_by_missing_after_properties_change(
     layer.color_by = 'time'
     controls = QtTracksControls(layer)
     qtbot.addWidget(controls)
-    assert controls.color_by_combobox.currentText() == 'time'
+    assert (
+        controls.qtColorPropertiesComboBoxControl.color_by_combobox.currentText()
+        == 'time'
+    )
 
     # Change the properties value by removing the time column.
     with pytest.warns(
@@ -93,4 +115,7 @@ def test_color_by_missing_after_properties_change(
         }
 
     assert layer.color_by == 'track_id'
-    assert controls.color_by_combobox.currentText() == 'track_id'
+    assert (
+        controls.qtColorPropertiesComboBoxControl.color_by_combobox.currentText()
+        == 'track_id'
+    )
