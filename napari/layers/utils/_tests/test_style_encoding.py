@@ -16,6 +16,7 @@ import pytest
 
 from napari._pydantic_compat import Field
 from napari.layers.utils.style_encoding import (
+    StyleCollection,
     _ConstantStyleEncoding,
     _DerivedStyleEncoding,
     _ManualStyleEncoding,
@@ -287,3 +288,77 @@ def test_vector_derived_encoding_clear():
     encoding._clear()
 
     np.testing.assert_array_equal(encoding._values, np.empty((0, 2)))
+
+
+class Style(StyleCollection):
+    constant: ScalarConstantEncoding = ScalarConstantEncoding(constant=2)
+    manual: ScalarManualEncoding = ScalarManualEncoding(array=[2, 4, 6])
+    direct: ScalarDirectEncoding = ScalarDirectEncoding(feature='scalar')
+
+
+def test_style_collection_call(features: pd.DataFrame):
+    style = Style()
+
+    values = style(features)
+
+    np.testing.assert_equal(values['constant'], 2)
+    np.testing.assert_equal(values['manual'], [2, 4, 6])
+    np.testing.assert_equal(values['direct'], features['scalar'])
+
+
+def test_style_collection_apply(features: pd.DataFrame):
+    style = Style()
+
+    style._apply(features)
+
+    np.testing.assert_equal(style.constant._values, 2)
+    np.testing.assert_equal(style.manual._values, [2, 4, 6])
+    np.testing.assert_equal(style.direct._values, features['scalar'])
+
+
+def test_style_collection_clear(features: pd.DataFrame):
+    style = Style()
+    style._apply(features)
+
+    style._clear()
+
+    np.testing.assert_equal(style.constant._values, 2)
+    np.testing.assert_equal(style.manual._values, [2, 4, 6])
+    np.testing.assert_equal(style.direct._values, [])
+
+
+def test_style_collection_refresh(features: pd.DataFrame):
+    style = Style()
+    style._apply(features)
+
+    features['scalar'] *= 2
+    style._refresh(features)
+
+    np.testing.assert_equal(style.constant._values, 2)
+    np.testing.assert_equal(style.manual._values, [2, 4, 6])
+    np.testing.assert_equal(style.direct._values, features['scalar'])
+
+
+def test_style_collection_delete(features: pd.DataFrame):
+    style = Style()
+    style._apply(features)
+
+    style._delete([1])
+
+    np.testing.assert_equal(style.constant._values, 2)
+    np.testing.assert_equal(style.manual._values, [2, 6])
+    np.testing.assert_equal(style.direct._values, features['scalar'][[0, 2]])
+
+
+def test_style_collection_copy_paste(features: pd.DataFrame):
+    style = Style()
+    style._apply(features)
+
+    copied = style._copy([0, 2])
+    style._paste(**copied)
+
+    np.testing.assert_equal(style.constant._values, 2)
+    np.testing.assert_equal(style.manual._values, [2, 4, 6, 2, 6])
+    np.testing.assert_equal(
+        style.direct._values, features['scalar'][[0, 1, 2, 0, 2]]
+    )
