@@ -412,8 +412,12 @@ class VispyCanvas:
         event = ReadOnlyWrapper(event, exceptions=('handled',))
         mouse_callbacks(self.viewer, event)
 
-        layer = self.viewer.layers.selection.active
-        if layer is not None:
+        layers = list(self.viewer.layers.selection)
+        if not layers:
+            active = self.viewer.layers.selection.active
+            layers = [] if active is None else [active]
+
+        for layer in layers:
             mouse_callbacks(layer, event)
 
     def _on_mouse_double_click(self, event: MouseEvent) -> None:
