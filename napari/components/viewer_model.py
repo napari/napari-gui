@@ -1520,6 +1520,9 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         else:
             layer_type = layer_type.lower()
 
+        if meta is None:
+            meta = {}
+
         if layer_type not in layers.NAMES:
             raise ValueError(
                 trans._(
@@ -1529,10 +1532,20 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
                     layer_names=layers.NAMES,
                 )
             )
+        if layer_type == 'image' and 'channel_axis' in meta:
+            warnings.warn(
+                'Adding layers with channel_axis is deprecated in 0.5.0 and will be removed in 0.6.0.',
+                category=FutureWarning,
+                stacklevel=3,
+            )
+            layer = self.add_image(data, **(meta or {}))
+            if isinstance(layer, list):
+                return layer
+            return [layer]
 
         try:
-            add_method = getattr(self, 'add_' + layer_type)
-            layer = add_method(data, **(meta or {}))
+            layer = Layer.create(data, {**meta}, layer_type)
+            self.add_layer(layer)
         except TypeError as exc:
             if 'unexpected keyword argument' not in str(exc):
                 raise
@@ -1545,7 +1558,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
                     layer_type=layer_type,
                 )
             ) from exc
-        return layer if isinstance(layer, list) else [layer]
+        return [layer]
 
 
 def _normalize_layer_data(data: LayerData) -> FullLayerData:
