@@ -1831,14 +1831,14 @@ class Layer(KeymapProvider, MousemapProvider, ABC, metaclass=PostInit):
         """
         Static for ease of testing
         """
-        world_dims = np.asarray(world_dims)
-        assert world_dims.min() == 0
-        assert world_dims.max() == len(world_dims) - 1
-        assert world_dims.ndim == 1
         offset = ndim_world - ndim
-        order = world_dims - offset
-        order = order[order >= 0]
-        return order - order.min()
+        order = np.array(world_dims)
+        if offset == 0:
+            return order
+        if offset < 0:
+            return np.concatenate((np.arange(-offset), order - offset))
+
+        return order[order >= offset] - offset
 
     def _display_bounding_box(self, dims_displayed: list[int]) -> npt.NDArray:
         """An axis aligned (ndisplay, 2) bounding box around the data"""
