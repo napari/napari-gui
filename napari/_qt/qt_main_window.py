@@ -91,6 +91,7 @@ from napari.utils.misc import (
     running_as_constructor_app,
 )
 from napari.utils.notifications import Notification
+from napari.utils.task_status import task_status_manager
 from napari.utils.theme import _themes, get_system_theme
 from napari.utils.translations import trans
 
@@ -134,6 +135,7 @@ class _QtMainWindow(QMainWindow):
         super().__init__(parent)
         self._ev = None
         self._window = window
+        self._plugin_manager_dialog = None
         self._qt_viewer = QtViewer(viewer, show_welcome_screen=True)
         self._quit_app = False
 
@@ -462,8 +464,9 @@ class _QtMainWindow(QMainWindow):
             return super().close()
         confirm_need_local = confirm_need and self._is_close_dialog[quit_app]
         self._is_close_dialog[quit_app] = False
+
         # here we save information that we could request confirmation on close
-        # So fi function `close` is called again, we don't ask again but just close
+        # So if function `close` is called again, we don't ask again but just close
         if (
             not confirm_need_local
             or not get_settings().application.confirm_close_window
@@ -573,11 +576,22 @@ class _QtMainWindow(QMainWindow):
 
         Regardless of whether cmd Q, cmd W, or the close button is used...
         """
+        task_status = task_status_manager.get_status()
         if (
+            task_status
+            and ConfirmCloseDialog(
+                self,
+                close_app=False,
+                extra_info='\n'.join(task_status),
+                display_checkbox=False,
+            ).exec_()
+            != QDialog.Accepted
+        ) or (
             event.spontaneous()
             and get_settings().application.confirm_close_window
             and self._qt_viewer.viewer.layers
-            and ConfirmCloseDialog(self, False).exec_() != QDialog.Accepted
+            and ConfirmCloseDialog(self, close_app=False).exec_()
+            != QDialog.Accepted
         ):
             event.ignore()
             return
@@ -675,6 +689,7 @@ class Window:
 
         # Connect the Viewer and create the Main Window
         self._qt_window = _QtMainWindow(viewer, self)
+
         qapp.installEventFilter(self._qt_window)
 
         # connect theme events before collecting plugin-provided themes

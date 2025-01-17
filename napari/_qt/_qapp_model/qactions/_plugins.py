@@ -32,7 +32,11 @@ def _show_plugin_install_dialog(window: Window) -> None:
     # This callback is only used when this package is available, thus we do not check
     from napari_plugin_manager.qt_plugin_dialog import QtPluginDialog
 
-    QtPluginDialog(window._qt_window).exec_()
+    window._qt_window._plugin_manager_dialog = QtPluginDialog(
+        window._qt_window
+    )
+    if window._qt_window._plugin_manager_dialog is not None:
+        window._qt_window._plugin_manager_dialog.exec_()
 
 
 def _show_plugin_err_reporter(window: Window) -> None:
