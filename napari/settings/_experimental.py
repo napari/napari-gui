@@ -49,6 +49,26 @@ class ExperimentalSettings(EventedSettings):
         gt=0,
         lt=50,
     )
+    scale_bar_length: int = Field(
+        5,
+        title=trans._('Scale bar length'),
+        description=trans._(
+            'The scale bar length as a fraction of the canvas width.'
+        ),
+        type=int,
+        ge=3,
+        le=10,
+    )
+    scale_bar_font_size: int = Field(
+        35,
+        title=trans._('Scale bar font size'),
+        description=trans._(
+            'The scale bar font size as a fraction of the canvas height.'
+        ),
+        type=int,
+        ge=30,
+        le=50,
+    )
 
     completion_radius: int = Field(
         default=-1,

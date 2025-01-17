@@ -8,10 +8,6 @@ class ScaleBar(Compound):
             [
                 [0, 0],
                 [1, 0],
-                [0, -5],
-                [0, 5],
-                [1, -5],
-                [1, 5],
             ]
         )
 
@@ -26,7 +22,7 @@ class ScaleBar(Compound):
                     anchor_y='top',
                     font_size=10,
                 ),
-                Line(connect='segments', method='gl', width=3),
+                Line(connect='strip', method='gl', width=3),
             ]
         )
 

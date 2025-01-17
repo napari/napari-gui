@@ -441,7 +441,6 @@ def test_points_layer_display_correct_slice_on_scale(make_napari_viewer):
     np.testing.assert_equal(response.indices, [0])
 
 
-@pytest.mark.slow
 @skip_on_win_ci
 def test_qt_viewer_clipboard_with_flash(make_napari_viewer, qtbot):
     viewer = make_napari_viewer()

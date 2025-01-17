@@ -7,6 +7,7 @@ import pint
 
 from napari._vispy.overlays.base import ViewerOverlayMixin, VispyCanvasOverlay
 from napari._vispy.visuals.scale_bar import ScaleBar
+from napari.settings import get_settings
 from napari.utils._units import PREFERRED_VALUES, get_unit_registry
 from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.theme import get_theme
@@ -26,7 +27,11 @@ class VispyScaleBarOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
         self.x_size = 150  # will be updated on zoom anyways
         # need to change from defaults because the anchor is in the center
         self.y_offset = 20
+        # TODO: perhaps change name as y_size does not indicate bottom offset.
         self.y_size = 5
+
+        # In the super().__init__ we see node is scale bar, need to connect its parent, canvas
+        self.node.events.parent_change.connect(self._on_parent_change)
 
         self.overlay.events.box.connect(self._on_box_change)
         self.overlay.events.box_color.connect(self._on_data_change)
@@ -41,6 +46,30 @@ class VispyScaleBarOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
         self.viewer.camera.events.zoom.connect(self._on_zoom_change)
 
         self.reset()
+
+    def _on_parent_change(self, event):
+        """Connect the canvas resize event to scale bar callback function(s)."""
+        if event.new and self.node.canvas:
+            event.new.canvas.events.resize.connect(
+                self._scale_scalebar_on_canvas_resize
+            )
+            event.new.canvas.events.resize.connect(self._scale_font_size)
+
+    def _scale_font_size(self, event):
+        """Scale the font size in response to a canvas resize"""
+        self.node.text.font_size = (
+            event.source.size[1]
+            / get_settings().experimental.scale_bar_font_size
+        )
+
+    def _scale_scalebar_on_canvas_resize(self, event):
+        self._target_length = (
+            event.source.size[0] / get_settings().experimental.scale_bar_length
+        )
+        self.y_size = event.source.size[1] / 40
+        self.x_size = event.source.size[0] / 20
+        self.node.line._width = event.source.size[1] / 100
+        self._on_zoom_change(force=True)
 
     def _on_unit_change(self):
         self._unit = get_unit_registry()(self.overlay.unit)
