@@ -1,0 +1,102 @@
+# This CI configuration uses griffe to detect api changes. When a PR is opened,
+# this will check the PR branch against its HEAD. If changes are detected, they
+# will be displayed as a PR comment and uploaded as an artifact. A label of
+# `api_changes` will also be added to the PR.
+# This workflow also includes a workflow_run to manually trigger checks against
+# arbitrary tags or commits.
+name: API changes
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      base_ref:
+        description: "Baseline commit or git reference"
+        required: true
+      contender_ref:
+        description: "Contender commit or git reference"
+        required: true
+
+jobs:
+  griffe:
+    runs-on: ubuntu-latest
+    steps:
+      # We need the full repo to avoid this issue
+      # https://github.com/actions/checkout/issues/23
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v4
+        name: Install Python
+        with:
+          python-version: "3.9"
+          cache-dependency-path: setup.cfg
+
+      - name: Install napari and griffe
+        run: |
+          pip install --upgrade pip
+          pip install -e .
+          pip install griffe
+
+      - name: Run griffe
+        id: run_griffe
+        run: |
+          if [[ $GITHUB_EVENT_NAME == pull_request ]]; then
+            EVENT_NAME="PR ${{ github.event.pull_request.number }}"
+            BASE_REF=${{ github.event.pull_request.base.sha }}
+            CONTENDER_REF=${GITHUB_SHA}
+            echo "Baseline:  ${BASE_REF} (${{ github.event.pull_request.base.label }})"
+            echo "Contender: ${CONTENDER_REF} (${{ github.event.pull_request.head.label }})"
+          elif [[ $GITHUB_EVENT_NAME == workflow_dispatch ]]; then
+            EVENT_NAME="manual trigger"
+            BASE_REF="${{ github.event.inputs.base_ref }}"
+            CONTENDER_REF="${{ github.event.inputs.contender_ref }}"
+            echo "Baseline:  ${BASE_REF} (workflow input)"
+            echo "Contender: ${CONTENDER_REF} (workflow input)"
+          fi
+
+          echo "EVENT_NAME=$EVENT_NAME" >> $GITHUB_ENV
+          echo "BASE_REF=$BASE_REF" >> $GITHUB_ENV
+          echo "CONTENDER_REF=$CONTENDER_REF" >> $GITHUB_ENV
+
+          # run griffe to detect changes (changes raise an error)
+          if ! griffe check napari -b ${BASE_REF} -a ${CONTENDER_REF} &> api_changes.log ; then
+            echo "Changes found"
+            echo "CHANGES_FOUND=true" >> $GITHUB_ENV
+            echo "::set-output name=MESSAGE::$(cat api_changes.log)"
+          else
+            echo "No changes found"
+            echo "CHANGES_FOUND=false" >> $GITHUB_ENV
+          fi
+
+      - name: Upload changes
+        uses: actions/upload-artifact@v3
+        if: ${{ env.CHANGES_FOUND == 'true' && github.event_name == 'pull_request' }}
+        with:
+          name: api_changes.log
+          path: api_changes.log
+
+      - name: Comment on PR
+        uses: actions/github-script@v6
+        if: ${{ env.CHANGES_FOUND == 'true' && github.event_name == 'pull_request' }}
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '${{ steps.run_griffe.outputs.MESSAGE }}'
+            })
+
+      - name: Add label to PR
+        if: ${{ env.CHANGES_FOUND == 'true' && github.event_name == 'pull_request' }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.addLabels({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: ['api']
+            })
