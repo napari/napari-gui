@@ -84,6 +84,13 @@ class NapariQtNotification(QDialog):
     ) -> None:
         super().__init__(parent=parent)
 
+        # Don't auto-dismiss for warnings and errors
+        if (
+            severity == NotificationSeverity.WARNING
+            or severity == NotificationSeverity.ERROR
+        ):
+            self.DISMISS_AFTER = -1
+
         if parent and hasattr(parent, 'resized'):
             parent.resized.connect(self.move_to_bottom_right)
 
