@@ -215,7 +215,6 @@ class _BaseEventedItemModel(QAbstractItemModel, Generic[ItemType]):
             disconnect_events(self._root.events, self)
 
         self._root = root
-        self._root.events.removing.connect(self._on_begin_removing)
         self._root.events.removed.connect(self._on_end_remove)
         self._root.events.inserting.connect(self._on_begin_inserting)
         self._root.events.inserted.connect(self._on_end_insert)
@@ -250,18 +249,20 @@ class _BaseEventedItemModel(QAbstractItemModel, Generic[ItemType]):
         """Must be called after insert operation to update model."""
         self.endInsertRows()
 
-    def _on_begin_removing(self, event):
-        """Begins a row removal operation.
+    def _on_end_remove(self, event):
+        """Must be called after remove operation to update model."""
+        self._on_end_removing(event.index)
+        self.endRemoveRows()
+
+    def _on_end_removing(self, index):
+        """
+        Begins a row removal operation.
 
         See Qt documentation:
         https://doc.qt.io/qt-5/qabstractitemmodel.html#beginRemoveRows
         """
-        par, idx = self._split_nested_index(event.index)
+        par, idx = self._split_nested_index(index)
         self.beginRemoveRows(par, idx, idx)
-
-    def _on_end_remove(self):
-        """Must be called after remove operation to update model."""
-        self.endRemoveRows()
 
     def _on_begin_moving(self, event):
         """Begins a row move operation.

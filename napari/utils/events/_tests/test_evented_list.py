@@ -141,6 +141,19 @@ def test_move(test_list):
     assert test_list == [3, 2, 0, 1, 4]
 
 
+def test_cancel_delete_layer(test_list):
+    test_list.events = Mock(wraps=test_list.events)
+
+    def on_removing(event):
+        event.cancelled = True
+
+    test_list.events.removing.connect(on_removing)
+    test_list.__delitem__(2)
+
+    test_list.events.removing.assert_called_once()
+    test_list.events.removed.assert_not_called()
+
+
 BASIC_INDICES = [
     ((2,), 0, [2, 0, 1, 3, 4, 5, 6, 7]),  # move single item
     ([0, 2, 3], 6, [1, 4, 5, 0, 2, 3, 6, 7]),  # move back

@@ -77,18 +77,20 @@ class SelectableEventedList(Selectable[_T], EventedList[_T]):
     def remove_selected(self) -> None:
         """Remove selected items from list."""
         idx = 0
+        initial_len = len(self)
         for i in list(self.selection):
             idx = self.index(i)
             self.remove(i)
-        if isinstance(idx, int):
-            new = max(0, (idx - 1))
-            do_add = len(self) > new
-        else:
-            *root, _idx = idx
-            new = (*tuple(root), _idx - 1) if _idx >= 1 else tuple(root)
-            do_add = len(self) > new[0]
-        if do_add:
-            self.selection.add(self[new])
+        if initial_len > len(self):
+            if isinstance(idx, int):
+                new = max(0, (idx - 1))
+                do_add = len(self) > new
+            else:
+                *root, _idx = idx
+                new = (*tuple(root), _idx - 1) if _idx >= 1 else tuple(root)
+                do_add = len(self) > new[0]
+            if do_add:
+                self.selection.add(self[new])
 
     def move_selected(self, index: int, insert: int) -> None:
         """Reorder list by moving the item at index and inserting it

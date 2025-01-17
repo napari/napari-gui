@@ -67,8 +67,10 @@ class EventedList(TypedMutableSequence[_T]):
         emitted before an item is inserted at ``index``
     inserted (index: int, value: T)
         emitted after ``value`` is inserted at ``index``
-    removing (index: int)
-        emitted before an item is removed at ``index``
+    removing (index: int, cancelled: bool)
+        emitted before an item is removed at ``index`` and
+        ``cancelled`` flag denotes if layer deletion operation
+        should be cancelled once removing event is complete
     removed (index: int, value: T)
         emitted after ``value`` is removed at ``index``
     moving (index: int, new_index: int)
@@ -186,7 +188,9 @@ class EventedList(TypedMutableSequence[_T]):
     def __delitem__(self, key: Index) -> None:
         # delete from the end
         for parent, index in sorted(self._delitem_indices(key), reverse=True):
-            parent.events.removing(index=index)
+            event = parent.events.removing(index=index, cancelled=False)
+            if event.cancelled is True:
+                return
             self._disconnect_child_emitters(parent[index])
             item = parent._list.pop(index)
             self._process_delete_item(item)
