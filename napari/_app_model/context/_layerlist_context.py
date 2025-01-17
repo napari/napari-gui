@@ -288,6 +288,11 @@ class LayerListSelectionContextKeys(ContextNamespace['LayerSel']):
         trans._('True when all selected layers are labels.'),
         _only_labels,
     )
+    all_selected_layers_shapes = ContextKey(
+        False,
+        trans._('True when all selected layers are shapes.'),
+        _only_shapes,
+    )
     selected_empty_shapes_layer = ContextKey(
         False,
         trans._('True when there is a shapes layer without data selected.'),

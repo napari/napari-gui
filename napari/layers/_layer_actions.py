@@ -238,3 +238,40 @@ def _project(ll: LayerList, axis: int = 0, mode: str = 'max') -> None:
     )
 
     ll.append(new)
+
+
+def _enable_measure_shapes(ll: LayerList):
+    def polygon_area(pts):
+        x, y = pts.T
+        correction = x[-1] * y[0] - y[-1] * x[0]
+        main_area = np.dot(x[:-1], y[1:]) - np.dot(y[:-1], x[1:])
+        return 0.5 * np.abs(main_area + correction)
+
+    def measure(s_type, data):
+        perim = np.linalg.norm(data[1:] - data[:-1], axis=1).sum()
+        if s_type in ('line', 'path'):
+            area = 0
+        else:
+            area = polygon_area(data)
+            if s_type == 'ellipse':
+                area *= np.pi / 4
+        return perim, area
+
+    for lay in ll.selection:
+        if '_perimeter' not in lay.features.columns:
+            lay.features['_perimeter'] = 0.0
+        if '_area' not in lay.features.columns:
+            lay.features['_area'] = 0.0
+
+        lay.feature_defaults = lay.feature_defaults.to_dict().update(
+            {'_perimeter': 0.0, '_area': 0.0}
+        )
+        lay.text = 'P = {_perimeter:.3f}\nA={_area:.3f}'
+
+        @lay.events.set_data.connect
+        def update_features(event=None, lay=lay):
+            for i, (t, d) in enumerate(zip(lay.shape_type, lay.data)):
+                lay.features.iloc[i] = measure(t, d)
+            lay.refresh_text()
+
+        update_features()
