@@ -62,6 +62,41 @@ class LayerList(SelectableEventedList[Layer]):
     selection.events._current : (value: _T)
         emitted when the current item has changed. (Private event)
 
+    Notes
+    -----
+
+    Note that ``changed`` events are only emitted when the value of an item in
+    the layer list item value is changed, not when the item is inserted or removed.
+
+    Examples
+    --------
+
+    >>> import napari
+    >>> from skimage.data import astronaut
+    >>> viewer = napari.Viewer()
+    >>> event_list = []
+
+    Connect to the event list:
+
+    >>> viewer.layers.events.connect(event_list.append)
+    <built-in method append of list object at 0x7fc225764780>
+
+    >>> viewer.add_image(astronaut())
+    <Image layer 'Image' at 0x7f0fe7fa9e90>
+    >>> viewer.add_points()
+    <Points layer 'Points' at 0x7f102f962350>
+    >>> viewer.layers
+    [<Image layer 'Image' at 0x7f0fe7fa9e90>, <Points layer 'Points' at 0x7f102f962350>]
+
+    Inspecting the list of events, we see:
+
+    >>> event_list[0].type
+    'inserting'
+    >>> viewer.layers.pop(1)
+    <Points layer 'Points' at 0x7f102f962350>
+    >>> event_list[-1].type
+    'removed'
+
     """
 
     def __init__(self, data=()) -> None:
@@ -395,6 +430,12 @@ class LayerList(SelectableEventedList[Layer]):
         layers: Optional[Iterable[Union[str, Layer]]] = None,
         attributes: Iterable[str] = (),
     ):
+        """
+        Links the selected layers.
+
+        Once layers are linked, any action performed on one layer will be
+        performed on all linked layers at the same time.
+        """
         return self._link_layers('link_layers', layers, attributes)
 
     def unlink_layers(
@@ -402,6 +443,11 @@ class LayerList(SelectableEventedList[Layer]):
         layers: Optional[Iterable[Union[str, Layer]]] = None,
         attributes: Iterable[str] = (),
     ):
+        """Unlinks previously linked layers.
+
+        Changes to one of the layer's properties no longer result in the same
+        changes to the previously linked layers.
+        """
         return self._link_layers('unlink_layers', layers, attributes)
 
     def save(
