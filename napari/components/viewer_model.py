@@ -289,6 +289,10 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         self.mouse_double_click_callbacks.append(double_click_to_zoom)
 
         self._overlays.update({k: v() for k, v in DEFAULT_OVERLAYS.items()})
+        self._update_overlay_font_size()
+        settings.appearance.events.font_size.connect(
+            self._update_overlay_font_size
+        )
 
     # simple properties exposing overlays for backward compatibility
     @property
@@ -606,6 +610,16 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         for i, layer in enumerate(self.layers):
             i_row, i_column = self.grid.position(n_layers - 1 - i, n_layers)
             self._subplot(layer, (i_row, i_column), extent)
+
+    def _update_overlay_font_size(self):
+        """Keep viewer overlay font sizes current with settings values."""
+        font_size = get_settings().appearance.font_size
+        font_size_scaled = (
+            font_size * 1.667
+        )  # roughly scales default font size to suitable design for scale bar thickness
+
+        self.scale_bar.font_size = font_size_scaled
+        self.text_overlay.font_size = font_size_scaled
 
     def _subplot(self, layer, position, extent):
         """Shift a layer to a specified position in a 2D grid.
