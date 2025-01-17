@@ -203,7 +203,7 @@ Q_FILE_ACTIONS: list[Action] = [
         callback=_save_selected_layers,
         menus=[{'id': MenuId.MENUBAR_FILE, 'group': MenuGroup.SAVE}],
         keybindings=[StandardKeyBinding.Save],
-        enablement=(LLSCK.num_selected_layers > 0),
+        enablement=(LLCK.num_layers == 1 or LLSCK.num_selected_layers > 0),
     ),
     Action(
         id='napari.window.file.save_layers_dialog',
