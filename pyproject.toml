@@ -129,6 +129,7 @@ optional = [
     "PartSegCore-compiled-backend>=0.15.8",
 ]
 testing = [
+    "napari[gallery]",
     "babel>=2.9.0",
     "fsspec>=2023.10.0",
     "hypothesis>=6.8.0",
@@ -152,6 +153,46 @@ testing = [
 ]
 testing_extra = [
     "torch>=1.7",
+]
+# needed for gallery examples
+gallery = [
+    "scikit-image[data]",
+    "numpy",
+    "tqdm",
+    "omero-py",
+    "pandas",
+    "zarr",
+    "dask[array,distributed]",
+    "scipy",
+    "magicgui",
+    "tifffile",
+    "matplotlib",
+    "superqt",
+    "imageio",
+    "vispy",
+    "pooch",
+    "nilearn",
+    "xarray",
+]
+# needed to build docs
+docs = [
+    "napari[gallery]",
+    "sphinx<8",
+    "sphinx-autobuild",
+    "sphinx-tabs",
+    "sphinx-tags",
+    "sphinx-design",
+    "sphinx-external-toc",
+    "sphinx-favicon>=1.0",
+    "sphinx-copybutton",
+    "sphinx-gallery",
+    "sphinx_autodoc_typehints==1.12.0",
+    "myst-nb",
+    "napari-sphinx-theme>=0.3.0",
+    "matplotlib",
+    "lxml[html_clean]>5",
+    "imageio-ffmpeg",
+    "pytest",
 ]
 release = [
     "PyGithub>=1.44.1",
