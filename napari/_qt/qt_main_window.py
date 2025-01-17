@@ -68,6 +68,7 @@ from napari._qt.qt_resources import get_stylesheet
 from napari._qt.qt_viewer import QtViewer
 from napari._qt.threads.status_checker import StatusChecker
 from napari._qt.utils import QImg2array, qbytearray_to_str, str_to_qbytearray
+from napari._qt.widgets.qt_command_palette import QCommandPalette
 from napari._qt.widgets.qt_viewer_dock_widget import (
     _SHORTCUT_DEPRECATION_STRING,
     QtViewerDockWidget,
@@ -212,6 +213,8 @@ class _QtMainWindow(QMainWindow):
         settings.appearance.events.update_status_based_on_layer.connect(
             self._toggle_status_thread
         )
+
+        self._command_palette = QCommandPalette(self)
 
     def _toggle_status_thread(self, event: Event):
         if event.value:
@@ -992,6 +995,15 @@ class Window:
         """
         toggle_menubar_visibility = self._qt_window.toggle_menubar_visibility()
         self._main_menu_shortcut.setEnabled(toggle_menubar_visibility)
+
+    def _toggle_command_palette(self):
+        """Toggle the visibility of the command palette."""
+        palette = self._qt_window._command_palette
+        if palette.isVisible():
+            palette.hide()
+        else:
+            palette.update_context(self._qt_window)
+            palette.show()
 
     def _toggle_fullscreen(self):
         """Toggle fullscreen mode."""

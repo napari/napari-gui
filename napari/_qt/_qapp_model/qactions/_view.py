@@ -90,13 +90,28 @@ Q_VIEW_ACTIONS: list[Action] = [
         toggled=ToggleRule(get_current=_get_current_fullscreen_status),
     ),
     Action(
+        id='napari.window.view.toggle_command_palette',
+        title=trans._('Command Palette'),
+        menus=[
+            {
+                'id': MenuId.MENUBAR_VIEW,
+                'group': MenuGroup.NAVIGATION,
+                'order': 2,
+            }
+        ],
+        callback=Window._toggle_command_palette,
+        keybindings=[
+            {'primary': KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyP}
+        ],
+    ),
+    Action(
         id='napari.window.view.toggle_menubar',
         title=trans._('Toggle Menubar Visibility'),
         menus=[
             {
                 'id': MenuId.MENUBAR_VIEW,
                 'group': MenuGroup.NAVIGATION,
-                'order': 2,
+                'order': 3,
                 'when': sys.platform != 'darwin',
             }
         ],

@@ -923,3 +923,9 @@ QMenu:disabled, QModelMenu:disabled {
 QMenu, QModelMenu {
 	padding: 6 px;
 }
+
+/* --------------- Command palette ----------------- */
+
+QCommandLineEdit, QCommandList, QCommandLabel {
+  font-size: {{ increase(font_size, 4) }};
+}

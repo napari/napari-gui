@@ -122,5 +122,6 @@ def get_dummy_action(menu_id: MenuId) -> tuple[Action, str]:
             }
         ],
         enablement=False,
+        palette=False,
     )
     return action, context_key
