@@ -262,7 +262,7 @@ def _validate_rgb(colors, *, tolerance=0.0):
     """
     lo = 0 - tolerance
     hi = 1 + tolerance
-    valid = np.all((colors > lo) & (colors < hi), axis=1)
+    valid = np.all((colors >= lo) & (colors <= hi), axis=1)
     filtered_colors = np.clip(colors[valid], 0, 1)
     return filtered_colors
 
