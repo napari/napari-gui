@@ -1505,8 +1505,13 @@ class Points(Layer):
 
     @selected_data.setter
     def selected_data(self, selected_data: Sequence[int]) -> None:
-        self._selected_data.clear()
-        self._selected_data.update(set(selected_data))
+        # Previously selected points not present in the selection are dropped
+        # and newly selected points are added to the sequence. Reusing the same
+        # Selection object maintains Event signal connections. Only changes are
+        # emitted in events, retained selections are not reported.
+        self._selected_data.intersection_update(selected_data)
+        self._selected_data.update(selected_data)
+
         self._selected_view = list(
             np.intersect1d(
                 np.array(list(self._selected_data)),
