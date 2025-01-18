@@ -2112,14 +2112,14 @@ class Points(Layer):
         self.events.data(
             value=self.data,
             action=ActionType.ADDING,
-            data_indices=(-1,),
+            data_indices=tuple(-i - 1 for i in reversed(range(len(coords)))),
             vertex_indices=((),),
         )
         self._set_data(np.append(self.data, np.atleast_2d(coords), axis=0))
         self.events.data(
             value=self.data,
             action=ActionType.ADDED,
-            data_indices=(-1,),
+            data_indices=tuple(-i - 1 for i in reversed(range(len(coords)))),
             vertex_indices=((),),
         )
         self.selected_data = set(np.arange(cur_points, len(self.data)))

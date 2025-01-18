@@ -1177,7 +1177,7 @@ def test_add_colormap(attribute):
 
 
 @pytest.mark.parametrize('attribute', ['border', 'face'])
-def test_add_point_direct(attribute: str):
+def test_add_points_direct(attribute: str):
     """Test adding points to layer directly"""
     layer = Points()
     old_data = layer.data
@@ -1185,23 +1185,23 @@ def test_add_point_direct(attribute: str):
 
     layer.events.data = Mock()
     setattr(layer, f'current_{attribute}_color', 'red')
-    coord = [18, 18]
+    coords = [[18, 18], [18, 18]]
 
-    layer.add(coord)
+    layer.add(coords)
     assert layer.events.data.call_args_list[0][1] == {
         'value': old_data,
         'action': ActionType.ADDING,
-        'data_indices': (-1,),
+        'data_indices': (-2, -1),
         'vertex_indices': ((),),
     }
     assert layer.events.data.call_args[1] == {
         'value': layer.data,
         'action': ActionType.ADDED,
-        'data_indices': (-1,),
+        'data_indices': (-2, -1),
         'vertex_indices': ((),),
     }
     np.testing.assert_allclose(
-        [[1, 0, 0, 1]], getattr(layer, f'{attribute}_color')
+        [[1, 0, 0, 1], [1, 0, 0, 1]], getattr(layer, f'{attribute}_color')
     )
 
 
