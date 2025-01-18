@@ -21,7 +21,7 @@ def move_plane_along_normal(
     """Move a layers slicing plane along its normal vector on click and drag."""
     # early exit clauses
     if (
-        'Shift' not in event.modifiers
+        'Control' not in event.modifiers
         or layer.visible is False
         or layer.mouse_pan is False
         or len(event.dims_displayed) < 3
