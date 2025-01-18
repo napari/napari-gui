@@ -186,3 +186,9 @@ def test_async_refresh_block(Layer, data, ndim):
 
     my_layer.refresh()
     mock.assert_called_once()
+
+
+def test_layers_have_clipping_plane(layer):
+    """Test that layers have a clipping planes."""
+    assert len(layer.experimental_clipping_planes) == 1
+    assert not layer.experimental_clipping_planes[0].enabled
