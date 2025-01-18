@@ -138,6 +138,13 @@ def get_widget_contribution(
             deferred=True,
         )
         raise KeyError(msg)
+    if widget_name:
+        msg = trans._(
+            'Plugin {plugin_name!r} does not provide any widgets.',
+            plugin_name=plugin_name,
+            deferred=True,
+        )
+        raise KeyError(msg)
     return None
 
 
