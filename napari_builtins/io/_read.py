@@ -17,6 +17,7 @@ from dask import delayed
 from imageio import formats
 
 from napari.utils.misc import abspath_or_url
+from napari.utils.notifications import show_info
 from napari.utils.translations import trans
 
 if TYPE_CHECKING:
@@ -503,6 +504,32 @@ def _magic_imreader(path: str) -> list['LayerData']:
     return [(magic_imread(path),)]
 
 
+def _mixed_layer_directory_reader(path: str) -> list['LayerData']:
+    """This reader is intended to read the output of write_layer_data_with_plugins"""
+    layer_data = []
+    for file_name in Path(path).iterdir():
+        if file_name.suffix == '.csv':
+            layer_data.append(csv_to_layer_data(file_name, require_type=None))
+            layer_data[-1][1]['name'] = str(file_name.stem)
+        elif file_name.suffix in READER_EXTENSIONS:
+            layer_data.append(
+                (
+                    magic_imread(file_name),
+                    {'name': str(file_name.stem)},
+                    'image',
+                )
+            )
+        else:
+            show_info(
+                trans._(
+                    'Unable to read {file_name}, skipping.',
+                    file_name=file_name,
+                )
+            )
+
+    return layer_data
+
+
 def napari_get_reader(
     path: Union[str, list[str]],
 ) -> Optional['ReaderFunction']:
@@ -525,6 +552,8 @@ def napari_get_reader(
         if path.endswith('.csv'):
             return _csv_reader
         if os.path.isdir(path):
+            if any(glob(f'{path}/*.csv')):
+                return _mixed_layer_directory_reader
             return _magic_imreader
         path = [path]
 
