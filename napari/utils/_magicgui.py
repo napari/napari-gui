@@ -18,6 +18,8 @@ import weakref
 from functools import cache, partial
 from typing import TYPE_CHECKING, Any, Optional
 
+import numpy as np
+from magicgui.widgets import ComboBox, FunctionGui
 from typing_extensions import get_args
 
 from napari.utils._proxies import PublicOnlyProxy
@@ -25,12 +27,120 @@ from napari.utils._proxies import PublicOnlyProxy
 if TYPE_CHECKING:
     from concurrent.futures import Future
 
-    from magicgui.widgets import FunctionGui
-    from magicgui.widgets._bases import CategoricalWidget
+    from magicgui.widgets.bases import CategoricalWidget
 
     from napari._qt.qthreading import FunctionWorker
     from napari.layers import Layer
     from napari.viewer import Viewer
+
+
+def _get_layer_from_widget(gui: ComboBox, viewer: Viewer) -> Optional[Layer]:
+    """Retrieve layer used as input to function wrapped into magicgui .
+
+    Parameters
+    ----------
+    gui : magicgui.widgets.ComboBox
+        The instantiated ComboBox widget.
+
+    Returns
+    -------
+    Layer
+        layer passed as input to the function wrapped into magicgui.
+
+    """
+    import napari.types
+    from napari.layers import Layer
+
+    # this is workaround to work with python 3.9 as NewType do not contain
+    # information about mmodule
+    layer_types = {
+        napari.types.ImageData,
+        napari.types.LabelsData,
+        napari.types.PointsData,
+        napari.types.ShapesData,
+        napari.types.SurfaceData,
+        napari.types.TracksData,
+        napari.types.VectorsData,
+    }
+
+    if isinstance(gui.value, Layer):
+        return gui.value
+
+    if gui.annotation not in layer_types:
+        return None
+
+    layer_name = gui.current_choice[: -len(' (data)')]
+    return viewer.layers[layer_name]
+
+
+def _get_layers_from_widget(gui: FunctionGui, viewer: Viewer) -> list[Layer]:
+    """Retrieve layers used as input to function wrapped into magicgui .
+
+    Parameters
+    ----------
+    gui : magicgui.widgets.FunctionGui
+        The instantiated FunctionGui widget.
+
+    Returns
+    -------
+    list
+        list of layers passed as input to the function wrapped into magicgui.
+
+    """
+    res = []
+    for widg in gui:
+        if isinstance(widg, ComboBox):
+            layer = _get_layer_from_widget(widg, viewer)
+            if layer is not None:
+                res.append(layer)
+    return res
+
+
+def _calc_affine_from_source_layers(data, source_layers: list[Layer]):
+    """Calculate affine information for provided data based on source layers.
+
+    Parameters
+    ----------
+    data : array
+        Data to be added to the viewer.
+    source_layers : list
+        List of layers used to calculate affine information.
+
+    Returns
+    -------
+    dict
+        Dictionary with affine information.
+    """
+
+    source_layers = [
+        layer for layer in source_layers if layer.ndim >= data.ndim
+    ]
+
+    if not source_layers:
+        return {}
+
+    ndim = data.ndim
+    axis = np.array(range(-ndim, 0))
+
+    data2physical = (
+        source_layers[0]._transforms['data2physical'].set_slice(axis)
+    )
+
+    meta = {
+        'scale': data2physical.scale,
+        'translate': data2physical.translate,
+        'rotate': data2physical.rotate,
+        'shear': data2physical.shear,
+        'affine': source_layers[0].affine.set_slice(axis).affine_matrix,
+    }
+    return meta
+
+    # for layer in source_layers:
+    #     if layer.ndim < ndim:
+    #         continue
+    #
+    #     if layer.affine is not None:
+    #         return layer.affine
 
 
 def add_layer_data_to_viewer(gui: FunctionGui, result: Any, return_type: type):
@@ -66,12 +176,18 @@ def add_layer_data_to_viewer(gui: FunctionGui, result: Any, return_type: type):
     )
 
     if result is not None and (viewer := find_viewer_ancestor(gui)):
+        meta = {}
+        if isinstance(gui, FunctionGui):
+            layers = _get_layers_from_widget(gui, viewer)
+            meta = _calc_affine_from_source_layers(result, layers)
+
         _add_layer_data_to_viewer(
             result,
             return_type=return_type,
             viewer=viewer,
             layer_name=gui.result_name,
             source={'widget': gui},
+            meta=meta,
         )
 
 

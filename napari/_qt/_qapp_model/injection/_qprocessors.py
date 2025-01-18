@@ -69,6 +69,7 @@ def _add_layer_data_to_viewer(
     viewer: Optional[viewer.Viewer] = None,
     layer_name: Optional[str] = None,
     source: Optional[dict] = None,
+    meta: Optional[dict] = None,
 ) -> None:
     """Show a result in the viewer.
 
@@ -95,6 +96,8 @@ def _add_layer_data_to_viewer(
     ...     return np.random.rand(256, 256)
 
     """
+    if meta is None:
+        meta = {}
     if data is not None and (viewer := viewer or _provide_viewer()):
         if layer_name:
             with suppress(KeyError):
@@ -111,8 +114,11 @@ def _add_layer_data_to_viewer(
                 )
             return_type = return_type.__args__[0]
         layer_type = return_type.__name__.replace('Data', '').lower()
+
         with layer_source(**source) if source else nullcontext():
-            getattr(viewer, f'add_{layer_type}')(data=data, name=layer_name)
+            getattr(viewer, f'add_{layer_type}')(
+                data=data, name=layer_name, **meta
+            )
 
 
 def _add_layer_to_viewer(
