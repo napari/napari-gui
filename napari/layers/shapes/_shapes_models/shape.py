@@ -410,7 +410,7 @@ class Shape(ABC):
             self._data[:, self.dims_displayed] @ transform.T
         )
         self._face_vertices = self._face_vertices @ transform.T
-
+        self.__dict__.pop('data_displayed', None)  # clear cache
         points = self.data_displayed
         points = remove_path_duplicates(points, closed=self._closed)
         centers, offsets, triangles = triangulate_edge(
